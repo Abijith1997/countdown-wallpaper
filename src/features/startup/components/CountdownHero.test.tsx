@@ -42,7 +42,7 @@ describe("CountdownHero", () => {
     expect(screen.queryByText(/Target ·/i)).not.toBeInTheDocument();
   });
 
-  it("replaces heading, mantra, and target date with inline inputs when isEditing is true", () => {
+  it("replaces heading, mantra, and target date with inline inputs and ZenDateTimePicker when isEditing is true", () => {
     const onChangeTitle = vi.fn();
     const onChangeMantra = vi.fn();
     const onChangeTargetIso = vi.fn();
@@ -65,9 +65,9 @@ describe("CountdownHero", () => {
     fireEvent.change(mantraInput, { target: { value: "New mantra" } });
     expect(onChangeMantra).toHaveBeenCalledWith("New mantra");
 
-    const dateInput = screen.getByDisplayValue("2026-11-23T23:59");
-    fireEvent.change(dateInput, { target: { value: "2026-12-01T10:00" } });
-    expect(onChangeTargetIso).toHaveBeenCalledWith("2026-12-01T10:00");
+    // Open the custom ZenDateTimePicker in place of the target date
+    fireEvent.click(screen.getByLabelText("Main project deadline"));
+    fireEvent.click(screen.getByRole("button", { name: "15" }));
+    expect(onChangeTargetIso).toHaveBeenCalledWith("2026-11-14T23:59");
   });
 });
-

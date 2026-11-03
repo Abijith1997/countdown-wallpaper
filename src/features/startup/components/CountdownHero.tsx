@@ -1,6 +1,7 @@
 import React from "react";
 import { TimeLeft } from "../types";
 import { padNumber } from "../utils/time";
+import { ZenDateTimePicker } from "./ZenDateTimePicker";
 
 interface CountdownHeroProps {
   intentionTitle: string;
@@ -157,32 +158,22 @@ export const CountdownHero: React.FC<CountdownHeroProps> = ({
         ))}
       </div>
 
-      {/* Target Date Display / Inline Date Picker at the exact same spot */}
+      {/* Target Date Display / Inline Zen Date & Optional Time Picker at the exact same spot */}
       {!isLockScreenOnly && (
         <div className="mt-4 flex items-center justify-center">
           {isEditing ? (
-            <label
-              style={accentBorderStyle}
-              className={`inline-flex items-center gap-2 text-xs font-mono-zen px-3.5 py-1.5 rounded-full border backdrop-blur-md ${
-                useLightText
-                  ? "border-stone-600 bg-stone-900/70 text-stone-200"
-                  : "border-stone-300 bg-white/80 text-stone-700"
-              }`}
-            >
-              <span className="text-[10px] uppercase tracking-[0.18em] font-sans opacity-70">
+            <div className="inline-flex items-center gap-2">
+              <span className="text-[10px] uppercase tracking-[0.18em] font-light opacity-70">
                 Target:
               </span>
-              <input
-                type="datetime-local"
-                value={targetIso.slice(0, 16)}
-                onChange={(e) => {
-                  if (e.target.value) {
-                    onChangeTargetIso(e.target.value);
-                  }
-                }}
-                className="bg-transparent focus:outline-none cursor-pointer text-xs"
+              <ZenDateTimePicker
+                value={targetIso}
+                onChange={onChangeTargetIso}
+                useLightText={useLightText}
+                accentColor={accentColor}
+                ariaLabel="Main project deadline"
               />
-            </label>
+            </div>
           ) : (
             <span
               style={textStyle}

@@ -46,7 +46,7 @@ describe("TaskChecklist", () => {
     expect(onToggleTask).toHaveBeenCalledWith("t2");
   });
 
-  it("shows inline title & date inputs and Add Task form when isEditing is true", () => {
+  it("shows inline title & ZenDateTimePicker inputs and Add Task form when isEditing is true", () => {
     const onAddTask = vi.fn();
     const onUpdateTaskTitle = vi.fn();
     const onUpdateTaskDeadline = vi.fn();
@@ -75,12 +75,12 @@ describe("TaskChecklist", () => {
       "Write comprehensive tests"
     );
 
-    // Inline date picker right where the deadline badge was
-    const dateInput = screen.getByDisplayValue("2026-11-20T18:00");
-    fireEvent.change(dateInput, { target: { value: "2026-11-22T09:00" } });
+    // Inline ZenDateTimePicker right where the deadline badge was
+    fireEvent.click(screen.getByLabelText("Deadline for Write unit tests"));
+    fireEvent.click(screen.getByRole("button", { name: "25" }));
     expect(onUpdateTaskDeadline).toHaveBeenCalledWith(
       "t2",
-      "2026-11-22T09:00"
+      "2026-11-25T18:00"
     );
 
     // Add new task form
@@ -93,4 +93,3 @@ describe("TaskChecklist", () => {
     expect(onAddTask.mock.calls[0][0]).toBe("Record demo video");
   });
 });
-

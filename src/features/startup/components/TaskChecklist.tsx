@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { ZenTask } from "../types";
 import { TaskItem } from "./TaskItem";
+import { ZenDateTimePicker } from "./ZenDateTimePicker";
 
 interface TaskChecklistProps {
   tasks: ZenTask[];
@@ -124,29 +125,25 @@ export const TaskChecklist: React.FC<TaskChecklistProps> = ({
       {isEditing && (
         <form
           onSubmit={handleSubmit}
-          className="mt-4 pt-3 border-t border-stone-500/15 flex flex-col sm:flex-row gap-2.5"
+          className="mt-4 pt-3 border-t border-stone-500/15 flex flex-col sm:flex-row items-center gap-2.5"
         >
           <input
             type="text"
             value={newTaskTitle}
             onChange={(e) => setNewTaskTitle(e.target.value)}
             placeholder="Add a new task or milestone..."
-            className={`flex-1 text-xs px-3.5 py-2 rounded-xl border bg-transparent focus:outline-none ${
+            className={`flex-1 w-full text-xs px-3.5 py-2 rounded-xl border bg-transparent focus:outline-none ${
               useLightText
                 ? "border-stone-700/80 text-stone-100 placeholder:text-stone-500 focus:border-stone-400"
                 : "border-stone-300/90 text-stone-800 placeholder:text-stone-400 focus:border-stone-700"
             }`}
           />
-          <input
-            type="datetime-local"
+          <ZenDateTimePicker
             value={newTaskDeadline}
-            onChange={(e) => setNewTaskDeadline(e.target.value)}
-            aria-label="Task deadline"
-            className={`text-xs font-mono-zen px-3 py-2 rounded-xl border bg-transparent focus:outline-none ${
-              useLightText
-                ? "border-stone-700/80 text-stone-200 focus:border-stone-400"
-                : "border-stone-300/90 text-stone-700 focus:border-stone-700"
-            }`}
+            onChange={setNewTaskDeadline}
+            useLightText={useLightText}
+            accentColor={accentColor}
+            ariaLabel="New task deadline"
           />
           <button
             type="submit"

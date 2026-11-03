@@ -1,6 +1,7 @@
 import React from "react";
 import { ZenTask } from "../types";
 import { formatTaskCountdown } from "../utils/time";
+import { ZenDateTimePicker } from "./ZenDateTimePicker";
 
 interface TaskItemProps {
   task: ZenTask;
@@ -106,24 +107,17 @@ export const TaskItem: React.FC<TaskItemProps> = ({
         )}
       </div>
 
-      {/* Right side: Either Live Deadline Badge OR Inline Date Picker at the exact same spot */}
+      {/* Right side: Either Live Deadline Badge OR Inline Zen Date Picker at the exact same spot */}
       <div className="flex items-center gap-2 shrink-0">
         {isEditing ? (
           <>
-            <input
-              type="datetime-local"
-              value={task.deadlineIso.slice(0, 16)}
-              onChange={(e) => {
-                if (e.target.value) {
-                  onUpdateDeadline(task.id, e.target.value);
-                }
-              }}
-              title="Change task deadline"
-              className={`text-[11px] font-mono-zen bg-transparent border rounded-full px-2.5 py-0.5 focus:outline-none cursor-pointer ${
-                useLightText
-                  ? "border-stone-700 bg-stone-900/80 text-stone-200"
-                  : "border-stone-300 bg-stone-100 text-stone-700"
-              }`}
+            <ZenDateTimePicker
+              value={task.deadlineIso}
+              onChange={(iso) => onUpdateDeadline(task.id, iso)}
+              useLightText={useLightText}
+              accentColor={accentColor}
+              ariaLabel={`Deadline for ${task.title}`}
+              compact
             />
 
             <button

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { ZenDateTimePicker } from "../../startup/components/ZenDateTimePicker";
 
 interface NewProjectFormProps {
   darkMode: boolean;
@@ -13,8 +14,8 @@ export const NewProjectForm: React.FC<NewProjectFormProps> = ({
   const [title, setTitle] = useState("");
   const [targetIso, setTargetIso] = useState(() => {
     const d = new Date(Date.now() + 86400000 * 7);
-    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-    return d.toISOString().slice(0, 16);
+    d.setHours(23, 59, 0, 0);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}T23:59`;
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -64,16 +65,18 @@ export const NewProjectForm: React.FC<NewProjectFormProps> = ({
             : "border-stone-300 text-stone-800 placeholder:text-stone-400"
         }`}
       />
-      <input
-        type="datetime-local"
-        value={targetIso}
-        onChange={(e) => setTargetIso(e.target.value)}
-        className={`w-full text-[11px] font-mono-zen px-2.5 py-1.5 rounded-lg border bg-transparent focus:outline-none ${
-          darkMode
-            ? "border-stone-700 text-stone-200"
-            : "border-stone-300 text-stone-700"
-        }`}
-      />
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] uppercase tracking-wider text-stone-400">
+          Deadline
+        </span>
+        <ZenDateTimePicker
+          value={targetIso}
+          onChange={setTargetIso}
+          useLightText={darkMode}
+          ariaLabel="New project deadline"
+          compact
+        />
+      </div>
       <div className="flex items-center gap-1.5 pt-1">
         <button
           type="submit"
