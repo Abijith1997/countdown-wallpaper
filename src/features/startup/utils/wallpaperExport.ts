@@ -3,13 +3,14 @@ import {
   getAtmospherePreset,
   resolveAccessibleColors,
 } from "../constants";
-import { ProjectCountdown, TimeLeft } from "../types";
+import { ProjectCountdown, TimeLeft, ViewMode, ZenLayout } from "../types";
 import { formatTaskCountdown, padNumber } from "./time";
 
 interface ApplyWallpaperOptions {
   project: ProjectCountdown;
   timeLeft: TimeLeft;
   darkMode: boolean;
+  viewMode?: ViewMode;
   wallpaperImage: string | null;
   wallpaperDim: number;
   wallpaperBlur: number;
@@ -49,6 +50,7 @@ export async function renderAndSetMainWallpaper(
     project,
     timeLeft,
     darkMode,
+    viewMode = "main-wallpaper",
     wallpaperImage,
     wallpaperDim,
     wallpaperBlur,
@@ -73,6 +75,10 @@ export async function renderAndSetMainWallpaper(
   );
   const primaryText = resolved.textColor;
   const primaryAccent = resolved.accentColor;
+  const layout: ZenLayout = project.layout ?? "centered";
+  const isLockScreenOnly = viewMode === "lock-screen";
+  const visibleTasks =
+    !isLockScreenOnly && project.showSubtasks ? project.tasks.slice(0, 5) : [];
 
   // 1. Draw Background (Custom Image or Minimal Zen Gradient)
   if (wallpaperImage) {
@@ -106,21 +112,6 @@ export async function renderAndSetMainWallpaper(
     ctx.fillRect(0, 0, width, height);
   }
 
-  // 2. Draw Project Title & Mantra
-  ctx.textAlign = "center";
-  ctx.fillStyle = primaryText;
-  ctx.font = '300 84px "Cormorant Garamond", Georgia, serif';
-  ctx.fillText(project.title, width / 2, 340);
-
-  ctx.fillStyle = project.textColor
-    ? project.textColor
-    : useLightText
-      ? "rgba(214,211,209,0.85)"
-      : "rgba(87,83,78,0.9)";
-  ctx.font = 'italic 300 28px "Cormorant Garamond", Georgia, serif';
-  ctx.fillText(`“${project.mantra}”`, width / 2, 400);
-
-  // 3. Draw 4 Countdown Unit Cards
   const units = [
     { value: padNumber(timeLeft.days), label: "DAYS" },
     { value: padNumber(timeLeft.hours), label: "HOURS" },
@@ -128,56 +119,189 @@ export async function renderAndSetMainWallpaper(
     { value: padNumber(timeLeft.seconds), label: "SECONDS" },
   ];
 
-  const cardW = 240;
-  const cardH = 190;
-  const gap = 36;
-  const totalW = units.length * cardW + (units.length - 1) * gap;
-  const startX = (width - totalW) / 2;
-  const cardY = 470;
+  const cardSurfaceFill = useLightText
+    ? "rgba(12, 10, 9, 0.48)"
+    : "rgba(255, 255, 255, 0.72)";
+  const cardStroke = `${primaryAccent}66`;
 
-  units.forEach((u, idx) => {
-    const x = startX + idx * (cardW + gap);
-    drawRoundedRect(ctx, x, cardY, cardW, cardH, 32);
-    ctx.fillStyle = useLightText
-      ? "rgba(12, 10, 9, 0.48)"
-      : "rgba(255, 255, 255, 0.72)";
+  if (layout === "horizon") {
+    // Horizon layout: wide dock bar anchored near the lower third
+    const dockW = 2040;
+    const dockH = 300;
+    const dockX = (width - dockW) / 2;
+    const dockY = visibleTasks.length > 0 ? 640 : 960;
+
+    drawRoundedRect(ctx, dockX, dockY, dockW, dockH, 40);
+    ctx.fillStyle = cardSurfaceFill;
     ctx.fill();
     ctx.lineWidth = 1.5;
-    ctx.strokeStyle = project.accentColor
-      ? project.accentColor
-      : useLightText
-        ? "rgba(120, 113, 108, 0.35)"
-        : "rgba(214, 211, 209, 0.85)";
+    ctx.strokeStyle = cardStroke;
     ctx.stroke();
 
+    ctx.textAlign = "left";
     ctx.fillStyle = primaryText;
-    ctx.font = '300 76px "JetBrains Mono", monospace';
-    ctx.fillText(u.value, x + cardW / 2, cardY + 105);
+    ctx.font = '300 72px "Cormorant Garamond", Georgia, serif';
+    ctx.fillText(project.title, dockX + 64, dockY + 135);
 
-    ctx.fillStyle = project.accentColor || (useLightText ? "#A8A29E" : "#78716C");
-    ctx.font = '400 16px "Inter", sans-serif';
-    ctx.fillText(u.label, x + cardW / 2, cardY + 150);
-  });
+    if (!isLockScreenOnly) {
+      ctx.fillStyle = primaryText;
+      ctx.font = 'italic 300 26px "Cormorant Garamond", Georgia, serif';
+      ctx.fillText(`“${project.mantra}”`, dockX + 64, dockY + 195);
+    }
 
-  // 4. Draw Tasks Summary Card (Only if subtasks are enabled on this project)
-  const visibleTasks = project.showSubtasks ? project.tasks.slice(0, 5) : [];
+    const uW = 190;
+    const uH = 170;
+    const uGap = 24;
+    const uStartX = dockX + dockW - (4 * uW + 3 * uGap) - 64;
+    const uY = dockY + (dockH - uH) / 2;
+
+    units.forEach((u, idx) => {
+      const x = uStartX + idx * (uW + uGap);
+      drawRoundedRect(ctx, x, uY, uW, uH, 24);
+      ctx.fillStyle = cardSurfaceFill;
+      ctx.fill();
+      ctx.strokeStyle = cardStroke;
+      ctx.stroke();
+
+      ctx.textAlign = "center";
+      ctx.fillStyle = primaryText;
+      ctx.font = '300 60px "JetBrains Mono", monospace';
+      ctx.fillText(u.value, x + uW / 2, uY + 95);
+
+      ctx.fillStyle = primaryAccent;
+      ctx.font = '400 14px "Inter", sans-serif';
+      ctx.fillText(u.label, x + uW / 2, uY + 135);
+    });
+  } else if (layout === "split") {
+    // Editorial two-column split layout
+    const leftX = 240;
+    const centerY = 580;
+
+    ctx.textAlign = "left";
+    ctx.fillStyle = primaryText;
+    ctx.font = '300 80px "Cormorant Garamond", Georgia, serif';
+    ctx.fillText(project.title, leftX, centerY - 60);
+
+    if (!isLockScreenOnly) {
+      ctx.fillStyle = primaryText;
+      ctx.font = 'italic 300 28px "Cormorant Garamond", Georgia, serif';
+      ctx.fillText(`“${project.mantra}”`, leftX, centerY);
+    }
+
+    const uW = 210;
+    const uH = 175;
+    const uGap = 24;
+    units.forEach((u, idx) => {
+      const x =
+        visibleTasks.length > 0
+          ? leftX + idx * (uW + uGap)
+          : 1380 + (idx % 2) * (uW + uGap);
+      const y =
+        visibleTasks.length > 0
+          ? centerY + 60
+          : centerY - 140 + Math.floor(idx / 2) * (uH + uGap);
+
+      drawRoundedRect(ctx, x, y, uW, uH, 28);
+      ctx.fillStyle = cardSurfaceFill;
+      ctx.fill();
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = cardStroke;
+      ctx.stroke();
+
+      ctx.textAlign = "center";
+      ctx.fillStyle = primaryText;
+      ctx.font = '300 64px "JetBrains Mono", monospace';
+      ctx.fillText(u.value, x + uW / 2, y + 98);
+
+      ctx.fillStyle = primaryAccent;
+      ctx.font = '400 14px "Inter", sans-serif';
+      ctx.fillText(u.label, x + uW / 2, y + 140);
+    });
+  } else {
+    // Centered or Minimal layout
+    const titleY = visibleTasks.length > 0 ? 340 : 480;
+    ctx.textAlign = "center";
+    ctx.fillStyle = primaryText;
+    ctx.font = '300 84px "Cormorant Garamond", Georgia, serif';
+    ctx.fillText(project.title, width / 2, titleY);
+
+    if (!isLockScreenOnly) {
+      ctx.fillStyle = primaryText;
+      ctx.font = 'italic 300 28px "Cormorant Garamond", Georgia, serif';
+      ctx.fillText(`“${project.mantra}”`, width / 2, titleY + 60);
+    }
+
+    const cardW = 240;
+    const cardH = 190;
+    const gap = 36;
+    const totalW = units.length * cardW + (units.length - 1) * gap;
+    const startX = (width - totalW) / 2;
+    const cardY = titleY + 130;
+
+    if (layout === "minimal") {
+      ctx.strokeStyle = cardStroke;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(startX, cardY);
+      ctx.lineTo(startX + totalW, cardY);
+      ctx.moveTo(startX, cardY + cardH);
+      ctx.lineTo(startX + totalW, cardY + cardH);
+      ctx.stroke();
+
+      units.forEach((u, idx) => {
+        const x = startX + idx * (cardW + gap);
+        if (idx > 0) {
+          ctx.beginPath();
+          ctx.moveTo(x - gap / 2, cardY + 28);
+          ctx.lineTo(x - gap / 2, cardY + cardH - 28);
+          ctx.stroke();
+        }
+        ctx.fillStyle = primaryText;
+        ctx.font = '300 84px "JetBrains Mono", monospace';
+        ctx.fillText(u.value, x + cardW / 2, cardY + 108);
+
+        ctx.fillStyle = primaryAccent;
+        ctx.font = '400 16px "Inter", sans-serif';
+        ctx.fillText(u.label, x + cardW / 2, cardY + 154);
+      });
+    } else {
+      units.forEach((u, idx) => {
+        const x = startX + idx * (cardW + gap);
+        drawRoundedRect(ctx, x, cardY, cardW, cardH, 32);
+        ctx.fillStyle = cardSurfaceFill;
+        ctx.fill();
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = cardStroke;
+        ctx.stroke();
+
+        ctx.fillStyle = primaryText;
+        ctx.font = '300 76px "JetBrains Mono", monospace';
+        ctx.fillText(u.value, x + cardW / 2, cardY + 105);
+
+        ctx.fillStyle = primaryAccent;
+        ctx.font = '400 16px "Inter", sans-serif';
+        ctx.fillText(u.label, x + cardW / 2, cardY + 150);
+      });
+    }
+  }
+
+  // Draw Tasks Summary Card (Only if subtasks are enabled and not lock-screen)
   if (visibleTasks.length > 0) {
-    const boxW = 1068;
+    const boxW = layout === "split" ? 960 : 1068;
     const rowH = 68;
     const boxH = 90 + visibleTasks.length * rowH;
-    const boxX = (width - boxW) / 2;
-    const boxY = 720;
+    const boxX = layout === "split" ? 1360 : (width - boxW) / 2;
+    const boxY =
+      layout === "split"
+        ? (height - boxH) / 2
+        : layout === "horizon"
+          ? 980
+          : 720;
 
     drawRoundedRect(ctx, boxX, boxY, boxW, boxH, 36);
-    ctx.fillStyle = useLightText
-      ? "rgba(12, 10, 9, 0.52)"
-      : "rgba(255, 255, 255, 0.72)";
+    ctx.fillStyle = cardSurfaceFill;
     ctx.fill();
-    ctx.strokeStyle = project.accentColor
-      ? project.accentColor
-      : useLightText
-        ? "rgba(120, 113, 108, 0.35)"
-        : "rgba(214, 211, 209, 0.85)";
+    ctx.strokeStyle = cardStroke;
     ctx.stroke();
 
     ctx.textAlign = "left";
@@ -195,22 +319,18 @@ export async function renderAndSetMainWallpaper(
         ctx.fillStyle = primaryAccent;
         ctx.fill();
       } else {
-        ctx.strokeStyle = project.accentColor || (useLightText ? "#78716C" : "#A8A29E");
+        ctx.strokeStyle = primaryAccent;
         ctx.lineWidth = 2;
         ctx.stroke();
       }
 
       ctx.textAlign = "left";
-      ctx.fillStyle = task.completed
-        ? useLightText
-          ? "rgba(168,162,158,0.55)"
-          : "rgba(120,113,108,0.55)"
-        : primaryText;
+      ctx.fillStyle = task.completed ? `${primaryText}88` : primaryText;
       ctx.font = '300 24px "Inter", sans-serif';
       ctx.fillText(task.title, boxX + 88, y);
 
       ctx.textAlign = "right";
-      ctx.fillStyle = project.accentColor || (useLightText ? "#A8A29E" : "#57534E");
+      ctx.fillStyle = primaryAccent;
       ctx.font = '300 20px "JetBrains Mono", monospace';
       ctx.fillText(status.label, boxX + boxW - 44, y);
     });

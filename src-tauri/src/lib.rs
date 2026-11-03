@@ -68,13 +68,15 @@ fn set_live_desktop_mode(window: tauri::WebviewWindow, enable: bool) -> Result<(
                 if !ns_win.is_null() {
                     if enable {
                         // Sits on the macOS Desktop layer behind normal application windows (level 0),
-                        // while remaining fully interactive for checkboxes and inputs.
+                        // while remaining visible when the app deactivates or system overlays open.
                         let desktop_level: isize = -2147483602;
                         let _: () = msg_send![ns_win, setLevel: desktop_level];
+                        let _: () = msg_send![ns_win, setHidesOnDeactivate: false];
 
                         // CanJoinAllSpaces (1 << 0) | Stationary (1 << 4) | IgnoresCycle (1 << 6) | FullScreenAuxiliary (1 << 8)
                         let behavior: usize = (1 << 0) | (1 << 4) | (1 << 6) | (1 << 8);
                         let _: () = msg_send![ns_win, setCollectionBehavior: behavior];
+                        let _: () = msg_send![ns_win, orderFrontRegardless];
                     } else {
                         let normal_level: isize = 0;
                         let _: () = msg_send![ns_win, setLevel: normal_level];
