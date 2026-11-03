@@ -55,13 +55,13 @@ export const TaskChecklist: React.FC<TaskChecklistProps> = ({
   return (
     <div
       style={accentBorderStyle}
-      className={`max-w-2xl mx-auto rounded-3xl border p-5 md:p-6 text-left backdrop-blur-md transition-all ${
+      className={`max-w-2xl w-full mx-auto rounded-3xl border p-4 md:p-5 text-left backdrop-blur-md transition-all flex flex-col min-h-0 overflow-hidden ${
         useLightText
           ? "bg-stone-950/50 border-stone-700/60 text-stone-100"
           : "bg-white/65 border-stone-200/80 text-stone-800"
       }`}
     >
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3 shrink-0">
         <div>
           <h2
             style={textStyle}
@@ -96,8 +96,8 @@ export const TaskChecklist: React.FC<TaskChecklistProps> = ({
         </span>
       </div>
 
-      {/* Task List */}
-      <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+      {/* Scrollable Task List inside fixed-height checkpoints card */}
+      <div className="space-y-2 flex-1 min-h-0 overflow-y-auto pr-1">
         {tasks.length === 0 ? (
           <div className="text-center py-6 text-xs font-light italic text-stone-400">
             No milestones yet.
@@ -125,7 +125,7 @@ export const TaskChecklist: React.FC<TaskChecklistProps> = ({
       {isEditing && (
         <form
           onSubmit={handleSubmit}
-          className="mt-4 pt-3 border-t border-stone-500/15 flex flex-col sm:flex-row items-center gap-2.5"
+          className="mt-3 pt-3 border-t border-stone-500/15 flex flex-col sm:flex-row items-center gap-2.5 shrink-0"
         >
           <input
             type="text"

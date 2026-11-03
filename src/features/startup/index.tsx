@@ -196,11 +196,11 @@ export const StartupPage: React.FC<StartupPageProps> = ({
         const file = e.dataTransfer.files?.[0];
         if (file) handleImageFile(file);
       }}
-      className={`relative flex-1 overflow-y-auto transition-all duration-700 bg-gradient-to-br ${atmosphereSurface} ${
+      className={`relative flex-1 h-full overflow-hidden transition-all duration-700 bg-gradient-to-br ${atmosphereSurface} ${
         useLightText
           ? "text-stone-100"
           : "text-stone-800"
-      } flex flex-col justify-between p-6 md:p-10`}
+      } flex flex-col justify-between p-6 md:p-8`}
     >
       <input
         ref={fileInputRef}
@@ -244,7 +244,7 @@ export const StartupPage: React.FC<StartupPageProps> = ({
         onToggleZenMode={onToggleZenMode}
       />
 
-      <div className="relative z-10 my-auto max-w-4xl mx-auto w-full text-center py-6 space-y-6">
+      <div className="relative z-10 flex-1 min-h-0 flex flex-col justify-center max-w-4xl mx-auto w-full text-center py-2 gap-4 overflow-hidden">
         {effectiveEditing && (
           <ColorSelector
             textColor={project.textColor ?? null}

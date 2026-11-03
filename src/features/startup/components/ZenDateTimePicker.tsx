@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 interface ZenDateTimePickerProps {
   value: string;
@@ -41,6 +42,13 @@ function parseIsoDate(iso: string): Date {
   return isNaN(parsed.getTime()) ? new Date() : parsed;
 }
 
+interface PopoverPosition {
+  placement: "above" | "below";
+  top?: number;
+  bottom?: number;
+  left: number;
+}
+
 export const ZenDateTimePicker: React.FC<ZenDateTimePickerProps> = ({
   value,
   onChange,
@@ -56,6 +64,11 @@ export const ZenDateTimePicker: React.FC<ZenDateTimePickerProps> = ({
 
   const [isOpen, setIsOpen] = useState(false);
   const [includeTime, setIncludeTime] = useState<boolean>(initialHasCustomTime);
+  const [popoverPos, setPopoverPos] = useState<PopoverPosition>({
+    placement: "below",
+    top: 0,
+    left: 0,
+  });
 
   // If includeTime is false and time is 23:59, the calendar date chosen by user is +1 day
   const [selectedDate, setSelectedDate] = useState<Date>(() => {
@@ -81,21 +94,75 @@ export const ZenDateTimePicker: React.FC<ZenDateTimePickerProps> = ({
     initialHasCustomTime ? parsedValue.getMinutes() : 0
   );
 
-  const containerRef = useRef<HTMLDivElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const popoverRef = useRef<HTMLDivElement | null>(null);
+
+  const updatePopoverPosition = () => {
+    if (!triggerRef.current) return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    const popoverWidth = 288; // w-72 = 18rem = 288px
+    const estimatedHeight = includeTime ? 360 : 320;
+    const viewportH = window.innerHeight || 800;
+    const viewportW = window.innerWidth || 1200;
+
+    const spaceBelow = viewportH - rect.bottom;
+    const spaceAbove = rect.top;
+
+    // Pop up above if there isn't enough room below and there's more room above
+    const placeAbove =
+      spaceBelow < estimatedHeight && spaceAbove > spaceBelow;
+
+    // Align right edge with trigger right edge, clamped inside viewport
+    const desiredLeft = rect.right - popoverWidth;
+    const clampedLeft = Math.max(
+      12,
+      Math.min(desiredLeft, viewportW - popoverWidth - 12)
+    );
+
+    if (placeAbove) {
+      setPopoverPos({
+        placement: "above",
+        bottom: Math.max(12, viewportH - rect.top + 8),
+        left: clampedLeft,
+      });
+    } else {
+      setPopoverPos({
+        placement: "below",
+        top: Math.max(12, rect.bottom + 8),
+        left: clampedLeft,
+      });
+    }
+  };
+
+  useLayoutEffect(() => {
+    if (isOpen) {
+      updatePopoverPosition();
+    }
+  }, [isOpen, includeTime]);
 
   useEffect(() => {
     if (!isOpen) return;
     const handleOutside = (e: MouseEvent) => {
+      const target = e.target as Node;
       if (
-        containerRef.current &&
-        !containerRef.current.contains(e.target as Node)
+        triggerRef.current?.contains(target) ||
+        popoverRef.current?.contains(target)
       ) {
-        setIsOpen(false);
+        return;
       }
+      setIsOpen(false);
     };
+    const handleScrollOrResize = () => updatePopoverPosition();
+
     document.addEventListener("mousedown", handleOutside);
-    return () => document.removeEventListener("mousedown", handleOutside);
-  }, [isOpen]);
+    window.addEventListener("resize", handleScrollOrResize);
+    window.addEventListener("scroll", handleScrollOrResize, true);
+    return () => {
+      document.removeEventListener("mousedown", handleOutside);
+      window.removeEventListener("resize", handleScrollOrResize);
+      window.removeEventListener("scroll", handleScrollOrResize, true);
+    };
+  }, [isOpen, includeTime]);
 
   const emitDeadline = (
     dateObj: Date,
@@ -161,17 +228,210 @@ export const ZenDateTimePicker: React.FC<ZenDateTimePickerProps> = ({
     month: "short",
     day: "numeric",
     year: "numeric",
-    ...(includeTime
-      ? { hour: "2-digit", minute: "2-digit" }
-      : { hour: "2-digit", minute: "2-digit" }),
+    hour: "2-digit",
+    minute: "2-digit",
   });
 
-  const accentBorder = accentColor ? { borderColor: `${accentColor}66` } : undefined;
+  const accentBorder = accentColor
+    ? { borderColor: `${accentColor}66` }
+    : undefined;
+
+  const popoverNode = isOpen ? (
+    <div
+      ref={popoverRef}
+      data-placement={popoverPos.placement}
+      style={{
+        position: "fixed",
+        top: popoverPos.top,
+        bottom: popoverPos.bottom,
+        left: popoverPos.left,
+      }}
+      className={`z-[9999] w-72 p-4 rounded-2xl border shadow-2xl backdrop-blur-xl transition-opacity ${
+        useLightText
+          ? "bg-[#161816]/95 border-stone-700/80 text-stone-100"
+          : "bg-[#FAF9F5]/95 border-stone-200/90 text-stone-800"
+      }`}
+    >
+      {/* Month / Year Navigation */}
+      <div className="flex items-center justify-between mb-3">
+        <button
+          type="button"
+          onClick={prevMonth}
+          className={`h-7 w-7 rounded-full flex items-center justify-center text-xs transition-colors cursor-pointer ${
+            useLightText
+              ? "hover:bg-stone-800 text-stone-300"
+              : "hover:bg-stone-200/70 text-stone-600"
+          }`}
+        >
+          ‹
+        </button>
+        <span className="font-serif-zen text-base font-normal tracking-wide">
+          {MONTHS[viewMonth]} {viewYear}
+        </span>
+        <button
+          type="button"
+          onClick={nextMonth}
+          className={`h-7 w-7 rounded-full flex items-center justify-center text-xs transition-colors cursor-pointer ${
+            useLightText
+              ? "hover:bg-stone-800 text-stone-300"
+              : "hover:bg-stone-200/70 text-stone-600"
+          }`}
+        >
+          ›
+        </button>
+      </div>
+
+      {/* Weekday Headers */}
+      <div className="grid grid-cols-7 gap-1 text-center mb-1.5">
+        {WEEKDAYS.map((wd) => (
+          <span
+            key={wd}
+            className="text-[10px] uppercase tracking-wider text-stone-400 font-light"
+          >
+            {wd}
+          </span>
+        ))}
+      </div>
+
+      {/* Days Grid */}
+      <div className="grid grid-cols-7 gap-1 text-center">
+        {Array.from({ length: firstDayOfWeek }).map((_, i) => (
+          <span key={`empty-${i}`} />
+        ))}
+        {Array.from({ length: daysInMonth }).map((_, idx) => {
+          const dayNum = idx + 1;
+          const isSelected =
+            selectedDate.getFullYear() === viewYear &&
+            selectedDate.getMonth() === viewMonth &&
+            selectedDate.getDate() === dayNum;
+
+          return (
+            <button
+              key={dayNum}
+              type="button"
+              onClick={() => handleSelectDay(dayNum)}
+              style={
+                isSelected && accentColor
+                  ? { backgroundColor: accentColor, color: "#1C1917" }
+                  : undefined
+              }
+              className={`h-7 w-7 mx-auto rounded-full font-mono-zen text-[11px] flex items-center justify-center transition-all cursor-pointer ${
+                isSelected
+                  ? useLightText
+                    ? "bg-stone-100 text-stone-950 font-medium"
+                    : "bg-stone-900 text-stone-50 font-medium"
+                  : useLightText
+                    ? "text-stone-300 hover:bg-stone-800"
+                    : "text-stone-700 hover:bg-stone-200/70"
+              }`}
+            >
+              {dayNum}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Include Time Option */}
+      <div className="mt-3.5 pt-3 border-t border-stone-500/15 space-y-2.5">
+        <label className="flex items-center justify-between cursor-pointer select-none">
+          <span className="text-[11px] font-light tracking-wide">
+            Include specific time
+          </span>
+          <input
+            type="checkbox"
+            checked={includeTime}
+            onChange={(e) => handleToggleIncludeTime(e.target.checked)}
+            className="sr-only"
+          />
+          <span
+            style={
+              includeTime && accentColor
+                ? { backgroundColor: accentColor }
+                : undefined
+            }
+            className={`w-8 h-4.5 flex items-center rounded-full p-0.5 transition-colors ${
+              includeTime
+                ? useLightText
+                  ? "bg-emerald-400"
+                  : "bg-stone-800"
+                : useLightText
+                  ? "bg-stone-800"
+                  : "bg-stone-300"
+            }`}
+          >
+            <span
+              className={`bg-white w-3.5 h-3.5 rounded-full shadow-xs transform transition-transform ${
+                includeTime ? "translate-x-3.5" : "translate-x-0"
+              }`}
+            />
+          </span>
+        </label>
+
+        {includeTime ? (
+          <div
+            className={`flex items-center justify-between gap-2 px-3 py-2 rounded-xl border ${
+              useLightText
+                ? "border-stone-800 bg-stone-900/70"
+                : "border-stone-200 bg-white/80"
+            }`}
+          >
+            <span className="text-[10px] uppercase tracking-[0.18em] text-stone-400">
+              Time
+            </span>
+            <div className="flex items-center gap-1.5 font-mono-zen text-xs">
+              <select
+                aria-label="Hour"
+                value={hours}
+                onChange={(e) =>
+                  handleTimeChange(Number(e.target.value), minutes)
+                }
+                className={`bg-transparent px-1.5 py-0.5 rounded border focus:outline-none cursor-pointer ${
+                  useLightText
+                    ? "border-stone-700 text-stone-100 bg-stone-900"
+                    : "border-stone-300 text-stone-800 bg-white"
+                }`}
+              >
+                {Array.from({ length: 24 }).map((_, h) => (
+                  <option key={h} value={h}>
+                    {pad(h)}
+                  </option>
+                ))}
+              </select>
+              <span>:</span>
+              <select
+                aria-label="Minute"
+                value={minutes}
+                onChange={(e) =>
+                  handleTimeChange(hours, Number(e.target.value))
+                }
+                className={`bg-transparent px-1.5 py-0.5 rounded border focus:outline-none cursor-pointer ${
+                  useLightText
+                    ? "border-stone-700 text-stone-100 bg-stone-900"
+                    : "border-stone-300 text-stone-800 bg-white"
+                }`}
+              >
+                {Array.from({ length: 60 }).map((_, m) => (
+                  <option key={m} value={m}>
+                    {pad(m)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        ) : (
+          <div className="text-[10px] font-light italic text-stone-400 flex items-center justify-between">
+            <span>Defaults to 23:59 of previous day</span>
+            <span className="font-mono-zen not-italic">23:59</span>
+          </div>
+        )}
+      </div>
+    </div>
+  ) : null;
 
   return (
-    <div ref={containerRef} className="relative inline-block text-left">
-      {/* Minimal Zen Trigger Button */}
+    <div className="relative inline-block text-left">
       <button
+        ref={triggerRef}
         type="button"
         aria-label={ariaLabel}
         onClick={() => setIsOpen((o) => !o)}
@@ -188,190 +448,9 @@ export const ZenDateTimePicker: React.FC<ZenDateTimePickerProps> = ({
         <span>{formattedTrigger}</span>
       </button>
 
-      {/* Custom Zen Calendar & Optional Time Popover */}
-      {isOpen && (
-        <div
-          className={`absolute right-0 mt-2 z-50 w-72 p-4 rounded-2xl border shadow-xl backdrop-blur-xl transition-all ${
-            useLightText
-              ? "bg-[#161816]/95 border-stone-700/80 text-stone-100"
-              : "bg-[#FAF9F5]/95 border-stone-200/90 text-stone-800"
-          }`}
-        >
-          {/* Month / Year Navigation */}
-          <div className="flex items-center justify-between mb-3">
-            <button
-              type="button"
-              onClick={prevMonth}
-              className={`h-7 w-7 rounded-full flex items-center justify-center text-xs transition-colors cursor-pointer ${
-                useLightText
-                  ? "hover:bg-stone-800 text-stone-300"
-                  : "hover:bg-stone-200/70 text-stone-600"
-              }`}
-            >
-              ‹
-            </button>
-            <span className="font-serif-zen text-base font-normal tracking-wide">
-              {MONTHS[viewMonth]} {viewYear}
-            </span>
-            <button
-              type="button"
-              onClick={nextMonth}
-              className={`h-7 w-7 rounded-full flex items-center justify-center text-xs transition-colors cursor-pointer ${
-                useLightText
-                  ? "hover:bg-stone-800 text-stone-300"
-                  : "hover:bg-stone-200/70 text-stone-600"
-              }`}
-            >
-              ›
-            </button>
-          </div>
-
-          {/* Weekday Headers */}
-          <div className="grid grid-cols-7 gap-1 text-center mb-1.5">
-            {WEEKDAYS.map((wd) => (
-              <span
-                key={wd}
-                className="text-[10px] uppercase tracking-wider text-stone-400 font-light"
-              >
-                {wd}
-              </span>
-            ))}
-          </div>
-
-          {/* Days Grid */}
-          <div className="grid grid-cols-7 gap-1 text-center">
-            {Array.from({ length: firstDayOfWeek }).map((_, i) => (
-              <span key={`empty-${i}`} />
-            ))}
-            {Array.from({ length: daysInMonth }).map((_, idx) => {
-              const dayNum = idx + 1;
-              const isSelected =
-                selectedDate.getFullYear() === viewYear &&
-                selectedDate.getMonth() === viewMonth &&
-                selectedDate.getDate() === dayNum;
-
-              return (
-                <button
-                  key={dayNum}
-                  type="button"
-                  onClick={() => handleSelectDay(dayNum)}
-                  style={
-                    isSelected && accentColor
-                      ? { backgroundColor: accentColor, color: "#1C1917" }
-                      : undefined
-                  }
-                  className={`h-7 w-7 mx-auto rounded-full font-mono-zen text-[11px] flex items-center justify-center transition-all cursor-pointer ${
-                    isSelected
-                      ? useLightText
-                        ? "bg-stone-100 text-stone-950 font-medium"
-                        : "bg-stone-900 text-stone-50 font-medium"
-                      : useLightText
-                        ? "text-stone-300 hover:bg-stone-800"
-                        : "text-stone-700 hover:bg-stone-200/70"
-                  }`}
-                >
-                  {dayNum}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Include Time Option */}
-          <div className="mt-3.5 pt-3 border-t border-stone-500/15 space-y-2.5">
-            <label className="flex items-center justify-between cursor-pointer select-none">
-              <span className="text-[11px] font-light tracking-wide">
-                Include specific time
-              </span>
-              <input
-                type="checkbox"
-                checked={includeTime}
-                onChange={(e) => handleToggleIncludeTime(e.target.checked)}
-                className="sr-only"
-              />
-              <span
-                style={
-                  includeTime && accentColor
-                    ? { backgroundColor: accentColor }
-                    : undefined
-                }
-                className={`w-8 h-4.5 flex items-center rounded-full p-0.5 transition-colors ${
-                  includeTime
-                    ? useLightText
-                      ? "bg-emerald-400"
-                      : "bg-stone-800"
-                    : useLightText
-                      ? "bg-stone-800"
-                      : "bg-stone-300"
-                }`}
-              >
-                <span
-                  className={`bg-white w-3.5 h-3.5 rounded-full shadow-xs transform transition-transform ${
-                    includeTime ? "translate-x-3.5" : "translate-x-0"
-                  }`}
-                />
-              </span>
-            </label>
-
-            {includeTime ? (
-              <div
-                className={`flex items-center justify-between gap-2 px-3 py-2 rounded-xl border ${
-                  useLightText
-                    ? "border-stone-800 bg-stone-900/70"
-                    : "border-stone-200 bg-white/80"
-                }`}
-              >
-                <span className="text-[10px] uppercase tracking-[0.18em] text-stone-400">
-                  Time
-                </span>
-                <div className="flex items-center gap-1.5 font-mono-zen text-xs">
-                  <select
-                    aria-label="Hour"
-                    value={hours}
-                    onChange={(e) =>
-                      handleTimeChange(Number(e.target.value), minutes)
-                    }
-                    className={`bg-transparent px-1.5 py-0.5 rounded border focus:outline-none cursor-pointer ${
-                      useLightText
-                        ? "border-stone-700 text-stone-100 bg-stone-900"
-                        : "border-stone-300 text-stone-800 bg-white"
-                    }`}
-                  >
-                    {Array.from({ length: 24 }).map((_, h) => (
-                      <option key={h} value={h}>
-                        {pad(h)}
-                      </option>
-                    ))}
-                  </select>
-                  <span>:</span>
-                  <select
-                    aria-label="Minute"
-                    value={minutes}
-                    onChange={(e) =>
-                      handleTimeChange(hours, Number(e.target.value))
-                    }
-                    className={`bg-transparent px-1.5 py-0.5 rounded border focus:outline-none cursor-pointer ${
-                      useLightText
-                        ? "border-stone-700 text-stone-100 bg-stone-900"
-                        : "border-stone-300 text-stone-800 bg-white"
-                    }`}
-                  >
-                    {Array.from({ length: 60 }).map((_, m) => (
-                      <option key={m} value={m}>
-                        {pad(m)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            ) : (
-              <div className="text-[10px] font-light italic text-stone-400 flex items-center justify-between">
-                <span>Defaults to 23:59 of previous day</span>
-                <span className="font-mono-zen not-italic">23:59</span>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      {popoverNode && typeof document !== "undefined"
+        ? createPortal(popoverNode, document.body)
+        : popoverNode}
     </div>
   );
 };

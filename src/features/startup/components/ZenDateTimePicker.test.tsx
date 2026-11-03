@@ -50,4 +50,39 @@ describe("ZenDateTimePicker", () => {
     // Since value was 2026-11-23T23:59 (which represents Nov 24 without time), selectedDate is Nov 24
     expect(onChange).toHaveBeenLastCalledWith("2026-11-24T14:30");
   });
+
+  it("positions popover above when clicked near the bottom of the screen", () => {
+    Object.defineProperty(window, "innerHeight", {
+      writable: true,
+      configurable: true,
+      value: 800,
+    });
+
+    render(
+      <ZenDateTimePicker
+        value="2026-11-23T23:59"
+        onChange={vi.fn()}
+        ariaLabel="Bottom deadline picker"
+      />
+    );
+
+    const trigger = screen.getByLabelText("Bottom deadline picker");
+    vi.spyOn(trigger, "getBoundingClientRect").mockReturnValue({
+      top: 720,
+      bottom: 750,
+      left: 400,
+      right: 540,
+      width: 140,
+      height: 30,
+      x: 400,
+      y: 720,
+      toJSON: () => ({}),
+    });
+
+    fireEvent.click(trigger);
+
+    const popover = document.querySelector("[data-placement]");
+    expect(popover).toHaveAttribute("data-placement", "above");
+  });
 });
+
