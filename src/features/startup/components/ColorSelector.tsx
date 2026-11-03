@@ -1,5 +1,8 @@
 import React from "react";
-import { ZEN_ATMOSPHERE_PRESETS } from "../constants";
+import {
+  resolveAccessibleColors,
+  ZEN_ATMOSPHERE_PRESETS,
+} from "../constants";
 import { ZenAtmosphere, ZenLayout } from "../types";
 import { LayoutSelector } from "./LayoutSelector";
 
@@ -46,11 +49,16 @@ export const ColorSelector: React.FC<ColorSelectorProps> = ({
   onSelectAtmosphere,
   onSelectLayout,
 }) => {
-  const defaultText = useLightText ? "#F5F5F4" : "#1C1917";
-  const defaultAccent = useLightText ? "#34D399" : "#292524";
+  const resolved = resolveAccessibleColors(
+    atmosphere,
+    useLightText,
+    hasCustomWallpaper,
+    textColor,
+    accentColor
+  );
 
-  const activeText = textColor || defaultText;
-  const activeAccent = accentColor || defaultAccent;
+  const activeText = resolved.textColor;
+  const activeAccent = resolved.accentColor;
 
   return (
     <div
@@ -191,7 +199,11 @@ export const ColorSelector: React.FC<ColorSelectorProps> = ({
                   }`}
                 >
                   <span
-                    style={{ background: preset.swatchGradient }}
+                    style={{
+                      background: useLightText
+                        ? preset.swatchDark
+                        : preset.swatchLight,
+                    }}
                     className="h-3 w-3 rounded-full border border-stone-400/50 shrink-0"
                   />
                   <span>{preset.label}</span>

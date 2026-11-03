@@ -9,8 +9,8 @@ import { WallpaperBackdrop } from "./components/WallpaperBackdrop";
 import { WallpaperControls } from "./components/WallpaperControls";
 import {
   DEFAULT_PROJECTS,
-  getAtmosphereMatchingColors,
   getAtmosphereSurface,
+  resolveAccessibleColors,
 } from "./constants";
 import {
   ProjectCountdown,
@@ -181,12 +181,11 @@ export const StartupPage: React.FC<StartupPageProps> = ({
   };
 
   const handleSelectAtmosphere = (atmosphere: ZenAtmosphere) => {
-    const matching = getAtmosphereMatchingColors(atmosphere, darkMode);
     onUpdateProject({
       ...project,
       atmosphere,
-      textColor: matching.textColor,
-      accentColor: matching.accentColor,
+      textColor: null,
+      accentColor: null,
     });
   };
 
@@ -282,17 +281,16 @@ export const StartupPage: React.FC<StartupPageProps> = ({
 
   const wallpaperImage = project.wallpaperImage ?? null;
   const hasCustomWallpaper = Boolean(wallpaperImage);
-  const matchingColors = getAtmosphereMatchingColors(
+  const useLightText = hasCustomWallpaper || darkMode;
+  const resolvedColors = resolveAccessibleColors(
     project.atmosphere,
-    darkMode
+    darkMode,
+    hasCustomWallpaper,
+    project.textColor,
+    project.accentColor
   );
-  const useLightText =
-    hasCustomWallpaper || darkMode || matchingColors.inherentlyDark;
-  const effectiveTextColor =
-    project.textColor ?? (hasCustomWallpaper ? "#F5F5F4" : matchingColors.textColor);
-  const effectiveAccentColor =
-    project.accentColor ??
-    (hasCustomWallpaper ? "#34D399" : matchingColors.accentColor);
+  const effectiveTextColor = resolvedColors.textColor;
+  const effectiveAccentColor = resolvedColors.accentColor;
 
   const isLockScreenOnly = viewMode === "lock-screen";
   const showSubtasks = Boolean(project.showSubtasks);

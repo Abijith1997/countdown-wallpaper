@@ -1,7 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import {
-  getAtmosphereMatchingColors,
   getAtmospherePreset,
+  resolveAccessibleColors,
 } from "../constants";
 import { ProjectCountdown, TimeLeft } from "../types";
 import { formatTaskCountdown, padNumber } from "./time";
@@ -63,11 +63,16 @@ export async function renderAndSetMainWallpaper(
   if (!ctx) throw new Error("Canvas 2D context unavailable");
 
   const preset = getAtmospherePreset(project.atmosphere);
-  const matching = getAtmosphereMatchingColors(project.atmosphere, darkMode);
-  const useLightText =
-    Boolean(wallpaperImage) || darkMode || matching.inherentlyDark;
-  const primaryText = project.textColor || matching.textColor;
-  const primaryAccent = project.accentColor || matching.accentColor;
+  const useLightText = Boolean(wallpaperImage) || darkMode;
+  const resolved = resolveAccessibleColors(
+    project.atmosphere,
+    darkMode,
+    Boolean(wallpaperImage),
+    project.textColor,
+    project.accentColor
+  );
+  const primaryText = resolved.textColor;
+  const primaryAccent = resolved.accentColor;
 
   // 1. Draw Background (Custom Image or Minimal Zen Gradient)
   if (wallpaperImage) {
@@ -92,10 +97,7 @@ export async function renderAndSetMainWallpaper(
     ctx.fillStyle = `rgba(12, 13, 12, ${wallpaperDim / 100})`;
     ctx.fillRect(0, 0, width, height);
   } else {
-    const stops =
-      darkMode || matching.inherentlyDark
-        ? preset.darkStops
-        : preset.lightStops;
+    const stops = darkMode ? preset.darkStops : preset.lightStops;
     const grad = ctx.createLinearGradient(0, 0, width, height);
     grad.addColorStop(0, stops[0]);
     grad.addColorStop(0.5, stops[1]);

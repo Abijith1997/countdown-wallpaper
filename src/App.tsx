@@ -79,6 +79,17 @@ function App() {
     setActiveProjectId(projects[nextIndex].id);
   };
 
+  const handleToggleDarkMode = () => {
+    setDarkMode((prev) => !prev);
+    setProjects((prev) =>
+      prev.map((p) => ({
+        ...p,
+        textColor: null,
+        accentColor: null,
+      }))
+    );
+  };
+
   return (
     <main
       className={`h-screen w-screen transition-all duration-700 ${
@@ -93,7 +104,7 @@ function App() {
           onCreateProject={handleCreateProject}
           onDeleteProject={handleDeleteProject}
           darkMode={darkMode}
-          onToggleDarkMode={() => setDarkMode((prev) => !prev)}
+          onToggleDarkMode={handleToggleDarkMode}
           zenMode={zenMode || liveDesktopMode}
           onToggleZenMode={() => setZenMode((prev) => !prev)}
         />

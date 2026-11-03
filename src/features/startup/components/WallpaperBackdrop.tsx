@@ -20,8 +20,7 @@ export const WallpaperBackdrop: React.FC<WallpaperBackdropProps> = ({
   atmosphere,
 }) => {
   const preset = getAtmospherePreset(atmosphere);
-  const orbClass =
-    darkMode || preset.inherentlyDark ? preset.orbDark : preset.orbLight;
+  const orbClass = darkMode ? preset.orbDark : preset.orbLight;
 
   return (
     <>
