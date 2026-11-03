@@ -12,12 +12,12 @@ interface TopHeaderBarProps {
   onToggleReminders?: () => void;
   useLightText: boolean;
   hasCustomWallpaper: boolean;
-  atmosphere: ZenAtmosphere;
+  atmosphere?: ZenAtmosphere;
   zenMode: boolean;
   liveDesktopMode: boolean;
   isApplyingWallpaper: boolean;
   wallpaperStatus: string | null;
-  onSelectAtmosphere: (mood: ZenAtmosphere) => void;
+  onSelectAtmosphere?: (mood: ZenAtmosphere) => void;
   onTriggerUpload: () => void;
   onClearWallpaper: () => void;
   onSetMainWallpaper: () => void;
@@ -36,12 +36,10 @@ export const TopHeaderBar: React.FC<TopHeaderBarProps> = ({
   onToggleReminders,
   useLightText,
   hasCustomWallpaper,
-  atmosphere,
   zenMode,
   liveDesktopMode,
   isApplyingWallpaper,
   wallpaperStatus,
-  onSelectAtmosphere,
   onTriggerUpload,
   onClearWallpaper,
   onSetMainWallpaper,
@@ -237,35 +235,6 @@ export const TopHeaderBar: React.FC<TopHeaderBarProps> = ({
               >
                 Reset Image
               </button>
-            )}
-
-            {!hasCustomWallpaper && (
-              <div
-                className={`flex items-center gap-1 p-1 rounded-full border text-xs ${
-                  useLightText
-                    ? "border-stone-800 bg-stone-900/60"
-                    : "border-stone-200/90 bg-white/70"
-                }`}
-              >
-                {(["stone", "moss", "mist"] as ZenAtmosphere[]).map((mood) => (
-                  <button
-                    key={mood}
-                    type="button"
-                    onClick={() => onSelectAtmosphere(mood)}
-                    className={`px-2.5 py-1 rounded-full capitalize text-[11px] tracking-wide transition-all cursor-pointer ${
-                      atmosphere === mood
-                        ? useLightText
-                          ? "bg-stone-700 text-stone-100"
-                          : "bg-stone-800 text-stone-50"
-                        : useLightText
-                          ? "text-stone-400 hover:text-stone-200"
-                          : "text-stone-500 hover:text-stone-800"
-                    }`}
-                  >
-                    {mood}
-                  </button>
-                ))}
-              </div>
             )}
           </>
         )}

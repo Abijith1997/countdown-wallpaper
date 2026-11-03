@@ -40,14 +40,11 @@ describe("TopHeaderBar", () => {
     expect(onToggleSubtasks).toHaveBeenCalledTimes(1);
   });
 
-  it("shows image and atmosphere options only when isEditing is true", () => {
+  it("shows image upload option only when isEditing is true", () => {
     render(<TopHeaderBar {...defaultProps} isEditing={true} />);
 
     expect(screen.getByText("Done")).toBeInTheDocument();
     expect(screen.getByText("Add Image")).toBeInTheDocument();
-    expect(screen.getByText("stone")).toBeInTheDocument();
-    expect(screen.getByText("moss")).toBeInTheDocument();
-    expect(screen.getByText("mist")).toBeInTheDocument();
   });
 
   it("renders ONLY the Unpin button when liveDesktopMode is active", () => {
