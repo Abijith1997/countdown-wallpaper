@@ -12,6 +12,7 @@ export interface ProjectCountdown {
   id: string;
   title: string;
   mantra: string;
+  breathQuote?: string;
   targetIso: string;
   atmosphere: ZenAtmosphere;
   wallpaperImage?: string | null;

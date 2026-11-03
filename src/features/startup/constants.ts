@@ -1,5 +1,22 @@
 import { ProjectCountdown, ZenAtmosphere } from "./types";
 
+export const ZEN_BREATH_QUOTES: string[] = [
+  "Breathe in · Be present",
+  "Inhale calm · Exhale rush",
+  "One step · Quiet focus",
+  "Still mind · Steady pace",
+  "Progress over perfection",
+  "Slow down · Move with intent",
+  "Let go of noise · Begin now",
+  "Deep breath · Clear horizon",
+  "Small steps · Deep roots",
+  "Quiet effort · Lasting work",
+  "Present moment · Pure focus",
+  "Unrushed · Undistracted",
+  "Calm mind · Sharp craft",
+  "Breathe in clarity · Breathe out doubt",
+];
+
 export const DEFAULT_PROJECTS: ProjectCountdown[] = [
   {
     id: "proj-handshake",

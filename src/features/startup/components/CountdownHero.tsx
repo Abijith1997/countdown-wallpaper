@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useRef } from "react";
+import { ZEN_BREATH_QUOTES } from "../constants";
 import { TimeLeft } from "../types";
 import { padNumber } from "../utils/time";
 import { ZenDateTimePicker } from "./ZenDateTimePicker";
@@ -6,6 +7,7 @@ import { ZenDateTimePicker } from "./ZenDateTimePicker";
 interface CountdownHeroProps {
   intentionTitle: string;
   mantra: string;
+  breathQuote?: string;
   targetIso: string;
   timeLeft: TimeLeft;
   useLightText: boolean;
@@ -15,12 +17,14 @@ interface CountdownHeroProps {
   isEditing: boolean;
   onChangeTitle: (title: string) => void;
   onChangeMantra: (mantra: string) => void;
+  onChangeBreathQuote?: (quote: string) => void;
   onChangeTargetIso: (iso: string) => void;
 }
 
 export const CountdownHero: React.FC<CountdownHeroProps> = ({
   intentionTitle,
   mantra,
+  breathQuote,
   targetIso,
   timeLeft,
   useLightText,
@@ -30,6 +34,7 @@ export const CountdownHero: React.FC<CountdownHeroProps> = ({
   isEditing,
   onChangeTitle,
   onChangeMantra,
+  onChangeBreathQuote,
   onChangeTargetIso,
 }) => {
   const units = [
@@ -38,6 +43,21 @@ export const CountdownHero: React.FC<CountdownHeroProps> = ({
     { value: padNumber(timeLeft.minutes), label: "Minutes" },
     { value: padNumber(timeLeft.seconds), label: "Seconds" },
   ];
+
+  const activeBreathQuote =
+    breathQuote && ZEN_BREATH_QUOTES.includes(breathQuote)
+      ? breathQuote
+      : ZEN_BREATH_QUOTES[0];
+  const currentQuoteIndex = ZEN_BREATH_QUOTES.indexOf(activeBreathQuote);
+
+  const pointerStartX = useRef<number | null>(null);
+  const wheelCooldown = useRef<number>(0);
+
+  const cycleQuote = (delta: number) => {
+    const len = ZEN_BREATH_QUOTES.length;
+    const nextIdx = (currentQuoteIndex + delta + len) % len;
+    onChangeBreathQuote?.(ZEN_BREATH_QUOTES[nextIdx]);
+  };
 
   const formattedDate = new Date(targetIso).toLocaleDateString(undefined, {
     month: "short",
@@ -57,22 +77,63 @@ export const CountdownHero: React.FC<CountdownHeroProps> = ({
       {!isLockScreenOnly && (
         <div
           style={accentBorderStyle}
-          className={`inline-flex items-center gap-2.5 px-3.5 py-1 rounded-full mb-4 border backdrop-blur-sm ${
+          onPointerDown={(e) => {
+            pointerStartX.current = e.clientX;
+          }}
+          onPointerUp={(e) => {
+            if (pointerStartX.current === null) return;
+            const diff = e.clientX - pointerStartX.current;
+            pointerStartX.current = null;
+            if (Math.abs(diff) > 20) {
+              cycleQuote(diff < 0 ? 1 : -1);
+            }
+          }}
+          onWheel={(e) => {
+            const now = Date.now();
+            if (now - wheelCooldown.current < 280) return;
+            if (Math.abs(e.deltaX) > 12 || Math.abs(e.deltaY) > 12) {
+              wheelCooldown.current = now;
+              cycleQuote((e.deltaX || e.deltaY) > 0 ? 1 : -1);
+            }
+          }}
+          title="Swipe or click arrows to change mindfulness quote"
+          className={`group inline-flex items-center gap-2 px-3 py-1 rounded-full mb-4 border backdrop-blur-sm select-none transition-all ${
             useLightText
               ? "border-stone-400/20 bg-stone-900/40 text-stone-200"
               : "border-stone-500/15 bg-stone-500/5 text-stone-600"
           }`}
         >
+          <button
+            type="button"
+            aria-label="Previous quote"
+            onClick={() => cycleQuote(-1)}
+            className="text-xs opacity-40 group-hover:opacity-90 hover:scale-110 transition-all cursor-pointer px-1"
+          >
+            ‹
+          </button>
+
           <span
             style={accentColor ? { backgroundColor: accentColor } : undefined}
-            className="h-1.5 w-1.5 rounded-full bg-current opacity-80 animate-ping"
+            className="h-1.5 w-1.5 rounded-full bg-current opacity-80 animate-ping shrink-0"
           />
-          <span
+
+          <button
+            type="button"
+            onClick={() => cycleQuote(1)}
             style={textStyle}
-            className="text-[11px] tracking-[0.18em] uppercase font-light"
+            className="text-[11px] tracking-[0.18em] uppercase font-light cursor-pointer"
           >
-            Breathe in · Be present
-          </span>
+            {activeBreathQuote}
+          </button>
+
+          <button
+            type="button"
+            aria-label="Next quote"
+            onClick={() => cycleQuote(1)}
+            className="text-xs opacity-40 group-hover:opacity-90 hover:scale-110 transition-all cursor-pointer px-1"
+          >
+            ›
+          </button>
         </div>
       )}
 

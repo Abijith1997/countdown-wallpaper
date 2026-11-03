@@ -271,6 +271,7 @@ export const StartupPage: React.FC<StartupPageProps> = ({
         <CountdownHero
           intentionTitle={project.title}
           mantra={project.mantra}
+          breathQuote={project.breathQuote}
           targetIso={project.targetIso}
           timeLeft={timeLeft}
           useLightText={useLightText}
@@ -280,6 +281,9 @@ export const StartupPage: React.FC<StartupPageProps> = ({
           isEditing={effectiveEditing}
           onChangeTitle={(title) => onUpdateProject({ ...project, title })}
           onChangeMantra={(mantra) => onUpdateProject({ ...project, mantra })}
+          onChangeBreathQuote={(breathQuote) =>
+            onUpdateProject({ ...project, breathQuote })
+          }
           onChangeTargetIso={(targetIso) =>
             onUpdateProject({ ...project, targetIso })
           }

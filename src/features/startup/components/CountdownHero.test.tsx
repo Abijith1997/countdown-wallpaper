@@ -70,4 +70,18 @@ describe("CountdownHero", () => {
     fireEvent.click(screen.getByRole("button", { name: "15" }));
     expect(onChangeTargetIso).toHaveBeenCalledWith("2026-11-14T23:59");
   });
+
+  it("cycles through motivational breathing quotes when swiped or clicked", () => {
+    const onChangeBreathQuote = vi.fn();
+    render(
+      <CountdownHero
+        {...baseProps}
+        onChangeBreathQuote={onChangeBreathQuote}
+      />
+    );
+
+    expect(screen.getByText("Breathe in · Be present")).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText("Next quote"));
+    expect(onChangeBreathQuote).toHaveBeenCalledWith("Inhale calm · Exhale rush");
+  });
 });
