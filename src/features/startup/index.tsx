@@ -307,7 +307,7 @@ export const StartupPage: React.FC<StartupPageProps> = ({
       </div>
 
       <footer className="relative z-10 flex items-center justify-end text-[11px] font-light opacity-60 pt-2">
-        <span>Still · Zen Countdown Lock Screen</span>
+        <span>Kanso · Zen Countdown Sanctuary</span>
       </footer>
     </section>
   );

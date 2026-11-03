@@ -21,7 +21,7 @@ export const BrandHeader: React.FC<BrandHeaderProps> = ({ darkMode }) => {
           />
         </span>
         <span className="font-serif-zen text-2xl tracking-wide font-light">
-          Still
+          Kanso
         </span>
       </div>
       <span
