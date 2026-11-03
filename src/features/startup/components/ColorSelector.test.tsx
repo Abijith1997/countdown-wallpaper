@@ -52,5 +52,38 @@ describe("ColorSelector", () => {
     expect(onChangeTextColor).toHaveBeenCalledWith(null);
     expect(onChangeAccentColor).toHaveBeenCalledWith(null);
   });
-});
 
+  it("renders layout options and wallpaper shades/gradients when handlers are provided", () => {
+    const onSelectLayout = vi.fn();
+    const onSelectAtmosphere = vi.fn();
+
+    render(
+      <ColorSelector
+        textColor={null}
+        accentColor={null}
+        useLightText={false}
+        atmosphere="stone"
+        layout="centered"
+        onChangeTextColor={vi.fn()}
+        onChangeAccentColor={vi.fn()}
+        onSelectLayout={onSelectLayout}
+        onSelectAtmosphere={onSelectAtmosphere}
+      />
+    );
+
+    fireEvent.click(screen.getByText("Split"));
+    expect(onSelectLayout).toHaveBeenCalledWith("split");
+
+    fireEvent.click(screen.getByText("Minimal"));
+    expect(onSelectLayout).toHaveBeenCalledWith("minimal");
+
+    fireEvent.click(screen.getByText("Horizon"));
+    expect(onSelectLayout).toHaveBeenCalledWith("horizon");
+
+    fireEvent.click(screen.getByText("Kyoto Twilight"));
+    expect(onSelectAtmosphere).toHaveBeenCalledWith("twilight");
+
+    fireEvent.click(screen.getByText("Sakura Dawn"));
+    expect(onSelectAtmosphere).toHaveBeenCalledWith("sakura");
+  });
+});

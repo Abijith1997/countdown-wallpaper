@@ -6,6 +6,10 @@ interface TopHeaderBarProps {
   onChangeViewMode: (mode: ViewMode) => void;
   isEditing: boolean;
   onToggleEdit: () => void;
+  showSubtasks: boolean;
+  onToggleSubtasks: () => void;
+  remindersEnabled?: boolean;
+  onToggleReminders?: () => void;
   useLightText: boolean;
   hasCustomWallpaper: boolean;
   atmosphere: ZenAtmosphere;
@@ -26,6 +30,10 @@ export const TopHeaderBar: React.FC<TopHeaderBarProps> = ({
   onChangeViewMode,
   isEditing,
   onToggleEdit,
+  showSubtasks,
+  onToggleSubtasks,
+  remindersEnabled = true,
+  onToggleReminders,
   useLightText,
   hasCustomWallpaper,
   atmosphere,
@@ -63,7 +71,7 @@ export const TopHeaderBar: React.FC<TopHeaderBarProps> = ({
   return (
     <header className="relative z-10 flex flex-wrap items-center justify-between gap-3">
       {/* Left: Top Navbar Switcher (Main Wallpaper vs Lock Screen) */}
-      <div className="flex items-center gap-2.5">
+      <div className="flex flex-wrap items-center gap-2.5">
         <div
           className={`flex items-center gap-1 p-1 rounded-full border backdrop-blur-md ${
             useLightText
@@ -121,6 +129,60 @@ export const TopHeaderBar: React.FC<TopHeaderBarProps> = ({
           <span>{isEditing ? "Done" : "Edit"}</span>
         </button>
 
+        {/* Optional Subtasks Section Toggle (in Main Wallpaper view) */}
+        {viewMode === "main-wallpaper" && (
+          <button
+            type="button"
+            onClick={onToggleSubtasks}
+            className={`px-3.5 py-1.5 rounded-full text-xs tracking-wide border transition-all cursor-pointer flex items-center gap-1.5 backdrop-blur-md ${
+              showSubtasks
+                ? useLightText
+                  ? "border-stone-500 bg-stone-800/90 text-stone-100"
+                  : "border-stone-800 bg-stone-900 text-stone-50"
+                : useLightText
+                  ? "border-stone-700/80 bg-stone-900/60 text-stone-400 hover:text-stone-200 font-light"
+                  : "border-stone-200/90 bg-white/75 text-stone-500 hover:text-stone-800 font-light"
+            }`}
+          >
+            <span>{showSubtasks ? "☑" : "☐"}</span>
+            <span>Subtasks</span>
+          </button>
+        )}
+
+        {/* Optional 24h / 12h / 1h Reminders Toggle */}
+        {onToggleReminders && (
+          <button
+            type="button"
+            title="Toggle 24h, 12h, and 1h deadline reminders"
+            onClick={onToggleReminders}
+            className={`px-3.5 py-1.5 rounded-full text-xs tracking-wide border transition-all cursor-pointer flex items-center gap-1.5 backdrop-blur-md ${
+              remindersEnabled
+                ? useLightText
+                  ? "border-stone-500 bg-stone-800/90 text-stone-100"
+                  : "border-stone-800 bg-stone-900 text-stone-50"
+                : useLightText
+                  ? "border-stone-700/80 bg-stone-900/60 text-stone-400 hover:text-stone-200 font-light"
+                  : "border-stone-200/90 bg-white/75 text-stone-500 hover:text-stone-800 font-light"
+            }`}
+          >
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M12 6A4 4 0 0 0 4 6c0 4.5-2 5.5-2 5.5h12S12 10.5 12 6" />
+              <path d="M6.8 13.5a1.5 1.5 0 0 0 2.4 0" />
+            </svg>
+            <span>Reminders</span>
+          </button>
+        )}
+
         {wallpaperStatus && (
           <span
             className={`text-[11px] font-light px-3 py-1 rounded-full border backdrop-blur-md ${
@@ -147,7 +209,22 @@ export const TopHeaderBar: React.FC<TopHeaderBarProps> = ({
                   : "border-stone-200/90 bg-white/75 text-stone-700 hover:bg-stone-100"
               }`}
             >
-              <span>🖼</span>
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+                className="opacity-85 shrink-0"
+              >
+                <rect x="2" y="2.5" width="12" height="11" rx="2" />
+                <circle cx="5.75" cy="6.25" r="1.25" />
+                <path d="M2.5 11.5L6.2 8.2L9.2 10.8L11.4 9L13.5 11.5" />
+              </svg>
               <span>{hasCustomWallpaper ? "Change Image" : "Add Image"}</span>
             </button>
 

@@ -10,6 +10,7 @@ const mockProjects: ProjectCountdown[] = [
     mantra: "Stay calm",
     targetIso: "2026-11-23T23:59",
     atmosphere: "stone",
+    showSubtasks: true,
     tasks: [
       { id: "t1", title: "Task 1", deadlineIso: "2026-11-10T12:00", completed: true },
       { id: "t2", title: "Task 2", deadlineIso: "2026-11-12T12:00", completed: false },
@@ -21,12 +22,13 @@ const mockProjects: ProjectCountdown[] = [
     mantra: "Keep it simple",
     targetIso: "2026-12-01T18:00",
     atmosphere: "moss",
+    showSubtasks: false,
     tasks: [],
   },
 ];
 
 describe("SideBar", () => {
-  it("renders configured projects and their task progress", () => {
+  it("renders configured projects and shows task progress only when showSubtasks is true", () => {
     render(
       <SideBar
         projects={mockProjects}
@@ -40,23 +42,23 @@ describe("SideBar", () => {
     expect(screen.getByText("Handshake Mission")).toBeInTheDocument();
     expect(screen.getByText("1/2 tasks")).toBeInTheDocument();
     expect(screen.getByText("Portfolio Launch")).toBeInTheDocument();
-    expect(screen.getByText("0/0 tasks")).toBeInTheDocument();
+    expect(screen.queryByText("0/0 tasks")).not.toBeInTheDocument();
   });
 
-  it("calls onSelectProject when a project item is clicked", () => {
-    const onSelectProject = vi.fn();
+  it("allows deleting even the last remaining project countdown", () => {
+    const onDeleteProject = vi.fn();
     render(
       <SideBar
-        projects={mockProjects}
+        projects={[mockProjects[0]]}
         activeProjectId="p1"
-        onSelectProject={onSelectProject}
+        onSelectProject={vi.fn()}
         onCreateProject={vi.fn()}
-        onDeleteProject={vi.fn()}
+        onDeleteProject={onDeleteProject}
       />
     );
 
-    fireEvent.click(screen.getByText("Portfolio Launch"));
-    expect(onSelectProject).toHaveBeenCalledWith("p2");
+    fireEvent.click(screen.getByTitle("Delete project countdown"));
+    expect(onDeleteProject).toHaveBeenCalledWith("p1");
   });
 
   it("allows creating a new project countdown", () => {
@@ -95,4 +97,3 @@ describe("SideBar", () => {
     expect(container.firstChild).toBeNull();
   });
 });
-

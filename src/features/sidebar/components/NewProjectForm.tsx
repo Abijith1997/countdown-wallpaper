@@ -3,7 +3,11 @@ import { ZenDateTimePicker } from "../../startup/components/ZenDateTimePicker";
 
 interface NewProjectFormProps {
   darkMode: boolean;
-  onCreateProject: (title: string, targetIso: string) => void;
+  onCreateProject: (
+    title: string,
+    targetIso: string,
+    showSubtasks?: boolean
+  ) => void;
 }
 
 export const NewProjectForm: React.FC<NewProjectFormProps> = ({
@@ -12,6 +16,7 @@ export const NewProjectForm: React.FC<NewProjectFormProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [title, setTitle] = useState("");
+  const [showSubtasks, setShowSubtasks] = useState(false);
   const [targetIso, setTargetIso] = useState(() => {
     const d = new Date(Date.now() + 86400000 * 7);
     d.setHours(23, 59, 0, 0);
@@ -22,8 +27,9 @@ export const NewProjectForm: React.FC<NewProjectFormProps> = ({
     e.preventDefault();
     const trimmed = title.trim();
     if (!trimmed || !targetIso) return;
-    onCreateProject(trimmed, new Date(targetIso).toISOString());
+    onCreateProject(trimmed, targetIso, showSubtasks);
     setTitle("");
+    setShowSubtasks(false);
     setIsOpen(false);
   };
 
@@ -77,6 +83,19 @@ export const NewProjectForm: React.FC<NewProjectFormProps> = ({
           compact
         />
       </div>
+
+      <label className="flex items-center justify-between cursor-pointer select-none pt-0.5">
+        <span className="text-[11px] font-light text-stone-400">
+          Include subtasks
+        </span>
+        <input
+          type="checkbox"
+          checked={showSubtasks}
+          onChange={(e) => setShowSubtasks(e.target.checked)}
+          className="accent-stone-700 cursor-pointer"
+        />
+      </label>
+
       <div className="flex items-center gap-1.5 pt-1">
         <button
           type="submit"
@@ -103,4 +122,3 @@ export const NewProjectForm: React.FC<NewProjectFormProps> = ({
     </form>
   );
 };
-

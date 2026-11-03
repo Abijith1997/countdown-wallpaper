@@ -81,13 +81,15 @@ export const SidebarNavItem: React.FC<SidebarNavItemProps> = ({
           >
             {remaining}
           </span>
-          <span
-            className={`text-[10px] font-light ${
-              darkMode ? "text-stone-500" : "text-stone-400"
-            }`}
-          >
-            {doneCount}/{totalCount} tasks
-          </span>
+          {project.showSubtasks && (
+            <span
+              className={`text-[10px] font-light ${
+                darkMode ? "text-stone-500" : "text-stone-400"
+              }`}
+            >
+              {doneCount}/{totalCount} tasks
+            </span>
+          )}
         </div>
       </div>
 

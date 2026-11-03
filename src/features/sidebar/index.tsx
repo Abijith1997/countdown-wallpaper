@@ -61,17 +61,29 @@ export const SideBar: React.FC<SideBarProps> = ({
         </div>
 
         <nav className="space-y-1.5 overflow-y-auto pr-1 flex-1">
-          {projects.map((project) => (
-            <SidebarNavItem
-              key={project.id}
-              project={project}
-              isActive={project.id === activeProjectId}
-              darkMode={darkMode}
-              canDelete={projects.length > 1}
-              onSelect={() => onSelectProject(project.id)}
-              onDelete={() => onDeleteProject(project.id)}
-            />
-          ))}
+          {projects.length === 0 ? (
+            <div
+              className={`text-xs font-light italic py-6 px-2 text-center rounded-2xl border border-dashed ${
+                darkMode
+                  ? "border-stone-800/80 text-stone-500"
+                  : "border-stone-200/90 text-stone-400"
+              }`}
+            >
+              No countdowns yet.
+            </div>
+          ) : (
+            projects.map((project) => (
+              <SidebarNavItem
+                key={project.id}
+                project={project}
+                isActive={project.id === activeProjectId}
+                darkMode={darkMode}
+                canDelete={true}
+                onSelect={() => onSelectProject(project.id)}
+                onDelete={() => onDeleteProject(project.id)}
+              />
+            ))
+          )}
         </nav>
 
         <NewProjectForm

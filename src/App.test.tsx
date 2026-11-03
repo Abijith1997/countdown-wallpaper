@@ -7,86 +7,81 @@ describe("App full integration", () => {
     localStorage.clear();
   });
 
-  it("loads the default Handshake Mission project and switches projects from the sidebar", () => {
+  it("starts with no default projects and shows 'Start a project to get started'", () => {
     render(<App />);
 
-    // Default active project
     expect(
-      screen.getByRole("heading", { name: "Handshake Mission Deadline" })
+      screen.getByRole("heading", { name: "Start a project to get started" })
     ).toBeInTheDocument();
-    expect(
-      screen.getByText("Submit project to Handshake AI Skills Studio")
-    ).toBeInTheDocument();
-
-    // Switch to another configured project in the sidebar
-    fireEvent.click(screen.getByText("Portfolio & Case Study v2"));
-    expect(
-      screen.getByRole("heading", { name: "Portfolio & Case Study v2" })
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText("Record interactive demo walkthrough video")
-    ).toBeInTheDocument();
+    expect(screen.getByText("No countdowns yet.")).toBeInTheDocument();
   });
 
-  it("shows only heading and timer when switched to Lock Screen mode", () => {
+  it("creates a project from the welcome form and hides subtasks by default unless opted in", () => {
     render(<App />);
 
-    fireEvent.click(screen.getByText("Lock Screen"));
+    const nameInput = screen.getByPlaceholderText(
+      "e.g., Product Launch, Thesis Submission..."
+    );
+    fireEvent.change(nameInput, { target: { value: "Handshake Mission" } });
+    fireEvent.click(screen.getByText("Start Project Countdown"));
 
-    // Heading & timer remain
     expect(
-      screen.getByRole("heading", { name: "Handshake Mission Deadline" })
+      screen.getByRole("heading", { name: "Handshake Mission" })
     ).toBeInTheDocument();
-    expect(screen.getByText("Days")).toBeInTheDocument();
 
-    // Tasks checklist and mantra are hidden on Lock Screen
+    // Subtasks section is hidden by default
     expect(
       screen.queryByText("Mindful Milestones & Deadlines")
     ).not.toBeInTheDocument();
-  });
 
-  it("toggles inline Edit mode to edit project heading and tasks in-place", () => {
-    render(<App />);
-
-    // Enter Edit mode
-    fireEvent.click(screen.getByText("Edit"));
-
-    // Heading is now an editable input
-    const headingInput = screen.getByDisplayValue("Handshake Mission Deadline");
-    fireEvent.change(headingInput, {
-      target: { value: "My Custom Zen Deadline" },
-    });
-
-    // Exit Edit mode
-    fireEvent.click(screen.getByText("Done"));
-
+    // User can opt to display subtasks via the Subtasks toggle button
+    fireEvent.click(screen.getByText("Subtasks"));
     expect(
-      screen.getByRole("heading", { name: "My Custom Zen Deadline" })
+      screen.getByText("Mindful Milestones & Deadlines")
     ).toBeInTheDocument();
   });
 
-  it("toggles task completion checkboxes and updates done count", () => {
+  it("allows deleting all project countdowns and returns to the 'Start a project to get started' screen", () => {
     render(<App />);
 
-    expect(screen.getByText("2/3 done")).toBeInTheDocument();
-    fireEvent.click(
-      screen.getByText("Submit project to Handshake AI Skills Studio")
+    const nameInput = screen.getByPlaceholderText(
+      "e.g., Product Launch, Thesis Submission..."
     );
-    expect(screen.getByText("3/3 done")).toBeInTheDocument();
+    fireEvent.change(nameInput, { target: { value: "Solo Project" } });
+    fireEvent.click(screen.getByText("Start Project Countdown"));
+
+    expect(
+      screen.getByRole("heading", { name: "Solo Project" })
+    ).toBeInTheDocument();
+
+    // Delete the only project in the sidebar
+    fireEvent.click(screen.getByTitle("Delete project countdown"));
+
+    expect(
+      screen.getByRole("heading", { name: "Start a project to get started" })
+    ).toBeInTheDocument();
   });
 
-  it("updates text and accent colors from the color selector in Edit mode", () => {
+  it("toggles inline Edit mode to edit project heading and colors in-place", () => {
     render(<App />);
 
+    const nameInput = screen.getByPlaceholderText(
+      "e.g., Product Launch, Thesis Submission..."
+    );
+    fireEvent.change(nameInput, { target: { value: "Initial Project" } });
+    fireEvent.click(screen.getByText("Start Project Countdown"));
+
     fireEvent.click(screen.getByText("Edit"));
+    const headingInput = screen.getByDisplayValue("Initial Project");
+    fireEvent.change(headingInput, {
+      target: { value: "My Custom Zen Deadline" },
+    });
     fireEvent.click(screen.getByTitle("Text: Champagne"));
-    fireEvent.click(screen.getByTitle("Accent: Kyoto Indigo"));
     fireEvent.click(screen.getByText("Done"));
 
     const heading = screen.getByRole("heading", {
-      name: "Handshake Mission Deadline",
+      name: "My Custom Zen Deadline",
     });
     expect(heading).toHaveStyle({ color: "#FDE68A" });
   });
 });
-

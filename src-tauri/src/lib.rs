@@ -154,6 +154,21 @@ fn set_desktop_wallpaper(image_bytes: Vec<u8>) -> Result<String, String> {
     Ok(path_str.to_string())
 }
 
+#[tauri::command]
+fn send_native_notification(title: String, body: String) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    {
+        let escaped_title = title.replace('\\', "\\\\").replace('\"', "\\\"");
+        let escaped_body = body.replace('\\', "\\\\").replace('\"', "\\\"");
+        let script = format!(
+            "display notification \"{}\" with title \"{}\" sound name \"Glass\"",
+            escaped_body, escaped_title
+        );
+        let _ = Command::new("osascript").arg("-e").arg(&script).output();
+    }
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -161,7 +176,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             greet,
             set_desktop_wallpaper,
-            set_live_desktop_mode
+            set_live_desktop_mode,
+            send_native_notification
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

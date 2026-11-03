@@ -1,4 +1,8 @@
 import { invoke } from "@tauri-apps/api/core";
+import {
+  getAtmosphereMatchingColors,
+  getAtmospherePreset,
+} from "../constants";
 import { ProjectCountdown, TimeLeft } from "../types";
 import { formatTaskCountdown, padNumber } from "./time";
 
@@ -58,10 +62,12 @@ export async function renderAndSetMainWallpaper(
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas 2D context unavailable");
 
-  const useLightText = Boolean(wallpaperImage) || darkMode;
-  const primaryText = project.textColor || (useLightText ? "#F5F5F4" : "#1C1917");
-  const primaryAccent =
-    project.accentColor || (useLightText ? "#34D399" : "#292524");
+  const preset = getAtmospherePreset(project.atmosphere);
+  const matching = getAtmosphereMatchingColors(project.atmosphere, darkMode);
+  const useLightText =
+    Boolean(wallpaperImage) || darkMode || matching.inherentlyDark;
+  const primaryText = project.textColor || matching.textColor;
+  const primaryAccent = project.accentColor || matching.accentColor;
 
   // 1. Draw Background (Custom Image or Minimal Zen Gradient)
   if (wallpaperImage) {
@@ -86,30 +92,14 @@ export async function renderAndSetMainWallpaper(
     ctx.fillStyle = `rgba(12, 13, 12, ${wallpaperDim / 100})`;
     ctx.fillRect(0, 0, width, height);
   } else {
+    const stops =
+      darkMode || matching.inherentlyDark
+        ? preset.darkStops
+        : preset.lightStops;
     const grad = ctx.createLinearGradient(0, 0, width, height);
-    if (darkMode) {
-      if (project.atmosphere === "moss") {
-        grad.addColorStop(0, "#131815");
-        grad.addColorStop(1, "#101210");
-      } else if (project.atmosphere === "mist") {
-        grad.addColorStop(0, "#141619");
-        grad.addColorStop(1, "#111214");
-      } else {
-        grad.addColorStop(0, "#161614");
-        grad.addColorStop(1, "#10100F");
-      }
-    } else {
-      if (project.atmosphere === "moss") {
-        grad.addColorStop(0, "#F3F5F1");
-        grad.addColorStop(1, "#EAEEE7");
-      } else if (project.atmosphere === "mist") {
-        grad.addColorStop(0, "#F2F4F7");
-        grad.addColorStop(1, "#EAECEF");
-      } else {
-        grad.addColorStop(0, "#FAF9F5");
-        grad.addColorStop(1, "#EFECE4");
-      }
-    }
+    grad.addColorStop(0, stops[0]);
+    grad.addColorStop(0.5, stops[1]);
+    grad.addColorStop(1, stops[2]);
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, width, height);
   }
@@ -167,8 +157,8 @@ export async function renderAndSetMainWallpaper(
     ctx.fillText(u.label, x + cardW / 2, cardY + 150);
   });
 
-  // 4. Draw Tasks Summary Card
-  const visibleTasks = project.tasks.slice(0, 5);
+  // 4. Draw Tasks Summary Card (Only if subtasks are enabled on this project)
+  const visibleTasks = project.showSubtasks ? project.tasks.slice(0, 5) : [];
   if (visibleTasks.length > 0) {
     const boxW = 1068;
     const rowH = 68;

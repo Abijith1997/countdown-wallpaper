@@ -7,6 +7,8 @@ const defaultProps = {
   onChangeViewMode: vi.fn(),
   isEditing: false,
   onToggleEdit: vi.fn(),
+  showSubtasks: false,
+  onToggleSubtasks: vi.fn(),
   useLightText: false,
   hasCustomWallpaper: false,
   atmosphere: "stone" as const,
@@ -22,15 +24,20 @@ const defaultProps = {
 };
 
 describe("TopHeaderBar", () => {
-  it("renders view switcher, Edit button, and Set as Live Wallpaper button", () => {
-    render(<TopHeaderBar {...defaultProps} />);
+  it("renders view switcher, Edit button, Subtasks toggle, and Set as Live Wallpaper button", () => {
+    const onToggleSubtasks = vi.fn();
+    render(
+      <TopHeaderBar {...defaultProps} onToggleSubtasks={onToggleSubtasks} />
+    );
 
     expect(screen.getByText("Main Wallpaper")).toBeInTheDocument();
     expect(screen.getByText("Lock Screen")).toBeInTheDocument();
     expect(screen.getByText("Edit")).toBeInTheDocument();
+    expect(screen.getByText("Subtasks")).toBeInTheDocument();
     expect(screen.getByText("Set as Live Wallpaper")).toBeInTheDocument();
-    // Image & theme options hidden when not editing
-    expect(screen.queryByText("Add Image")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByText("Subtasks"));
+    expect(onToggleSubtasks).toHaveBeenCalledTimes(1);
   });
 
   it("shows image and atmosphere options only when isEditing is true", () => {
@@ -62,4 +69,3 @@ describe("TopHeaderBar", () => {
     expect(onExitLiveWallpaper).toHaveBeenCalledTimes(1);
   });
 });
-

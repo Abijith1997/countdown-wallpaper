@@ -84,4 +84,41 @@ describe("CountdownHero", () => {
     fireEvent.click(screen.getByLabelText("Next quote"));
     expect(onChangeBreathQuote).toHaveBeenCalledWith("Inhale calm · Exhale rush");
   });
+
+  it("supports multiple layout modes (centered, split, minimal, horizon)", () => {
+    const { container, rerender } = render(
+      <CountdownHero {...baseProps} layout="split" />
+    );
+    expect(container.querySelector('[data-layout="split"]')).toBeInTheDocument();
+
+    rerender(<CountdownHero {...baseProps} layout="minimal" />);
+    expect(
+      container.querySelector('[data-layout="minimal"]')
+    ).toBeInTheDocument();
+
+    rerender(<CountdownHero {...baseProps} layout="horizon" />);
+    expect(
+      container.querySelector('[data-layout="horizon"]')
+    ).toBeInTheDocument();
+  });
+
+  it("shows chevron buttons near the main heading to cycle between project countdowns when canCycleProjects is true", () => {
+    const onCycleProject = vi.fn();
+    render(
+      <CountdownHero
+        {...baseProps}
+        canCycleProjects={true}
+        onCycleProject={onCycleProject}
+      />
+    );
+
+    const prevBtn = screen.getByLabelText("Previous project countdown");
+    const nextBtn = screen.getByLabelText("Next project countdown");
+
+    fireEvent.click(prevBtn);
+    expect(onCycleProject).toHaveBeenCalledWith(-1);
+
+    fireEvent.click(nextBtn);
+    expect(onCycleProject).toHaveBeenCalledWith(1);
+  });
 });

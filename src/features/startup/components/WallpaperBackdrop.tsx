@@ -1,4 +1,5 @@
 import React from "react";
+import { getAtmospherePreset } from "../constants";
 import { ZenAtmosphere } from "../types";
 
 interface WallpaperBackdropProps {
@@ -18,6 +19,10 @@ export const WallpaperBackdrop: React.FC<WallpaperBackdropProps> = ({
   darkMode,
   atmosphere,
 }) => {
+  const preset = getAtmospherePreset(atmosphere);
+  const orbClass =
+    darkMode || preset.inherentlyDark ? preset.orbDark : preset.orbLight;
+
   return (
     <>
       {/* Custom Wallpaper Background Layer */}
@@ -55,19 +60,10 @@ export const WallpaperBackdrop: React.FC<WallpaperBackdropProps> = ({
       {!wallpaperImage && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden">
           <div
-            className={`animate-breathe h-[420px] w-[420px] rounded-full blur-3xl transition-colors duration-1000 ${
-              darkMode
-                ? atmosphere === "moss"
-                  ? "bg-emerald-950/35"
-                  : "bg-stone-800/25"
-                : atmosphere === "moss"
-                  ? "bg-emerald-200/30"
-                  : "bg-stone-300/40"
-            }`}
+            className={`animate-breathe h-[420px] w-[420px] rounded-full blur-3xl transition-colors duration-1000 ${orbClass}`}
           />
         </div>
       )}
     </>
   );
 };
-

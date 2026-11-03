@@ -8,6 +8,7 @@ interface TaskChecklistProps {
   useLightText: boolean;
   textColor?: string | null;
   accentColor?: string | null;
+  fullWidth?: boolean;
   isEditing: boolean;
   onAddTask: (title: string, deadlineIso: string) => void;
   onToggleTask: (id: string) => void;
@@ -22,6 +23,7 @@ export const TaskChecklist: React.FC<TaskChecklistProps> = ({
   useLightText,
   textColor,
   accentColor,
+  fullWidth = false,
   isEditing,
   onAddTask,
   onToggleTask,
@@ -55,7 +57,9 @@ export const TaskChecklist: React.FC<TaskChecklistProps> = ({
   return (
     <div
       style={accentBorderStyle}
-      className={`max-w-2xl w-full mx-auto rounded-3xl border p-4 md:p-5 text-left backdrop-blur-md transition-all flex flex-col min-h-0 overflow-hidden ${
+      className={`${
+        fullWidth ? "w-full h-full" : "max-w-2xl w-full mx-auto"
+      } rounded-3xl border p-4 md:p-5 text-left backdrop-blur-md transition-all flex flex-col min-h-0 overflow-hidden ${
         useLightText
           ? "bg-stone-950/50 border-stone-700/60 text-stone-100"
           : "bg-white/65 border-stone-200/80 text-stone-800"
