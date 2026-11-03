@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1C1F1C" />
+      <stop offset="50%" stop-color="#141614" />
+      <stop offset="100%" stop-color="#0E100E" />
+    </linearGradient>
+    <radialGradient id="haloGrad" cx="50%" cy="45%" r="45%">
+      <stop offset="0%" stop-color="#34D399" stop-opacity="0.22" />
+      <stop offset="65%" stop-color="#D6D3C9" stop-opacity="0.06" />
+      <stop offset="100%" stop-color="#141614" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="ensoGrad" x1="15%" y1="10%" x2="85%" y2="90%">
+      <stop offset="0%" stop-color="#FAF9F5" />
+      <stop offset="65%" stop-color="#D6D3C9" />
+      <stop offset="100%" stop-color="#57534E" stop-opacity="0.25" />
+    </linearGradient>
+    <linearGradient id="emeraldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#A7F3D0" />
+      <stop offset="100%" stop-color="#34D399" />
+    </linearGradient>
+  </defs>
+
+  <!-- Base Icon Canvas -->
+  <rect x="0" y="0" width="1024" height="1024" rx="228" fill="url(#bgGrad)" />
+  <rect x="18" y="18" width="988" height="988" rx="212" fill="none" stroke="#F5F3EC" stroke-opacity="0.08" stroke-width="4" />
+
+  <!-- Soft Zen Breathing Ambient Halo -->
+  <circle cx="512" cy="512" r="400" fill="url(#haloGrad)" />
+
+  <!-- Subtle Minimalist Countdown Dial Ticks (12 positions) -->
+  <g stroke="#FAF9F5" stroke-opacity="0.22" stroke-width="5" stroke-linecap="round">
+    <line x1="512" y1="138" x2="512" y2="162" />
+    <line x1="700" y1="188" x2="688" y2="209" />
+    <line x1="836" y1="324" x2="815" y2="336" />
+    <line x1="886" y1="512" x2="862" y2="512" />
+    <line x1="836" y1="700" x2="815" y2="688" />
+    <line x1="700" y1="836" x2="688" y2="815" />
+    <line x1="512" y1="886" x2="512" y2="862" />
+    <line x1="324" y1="836" x2="336" y2="815" />
+    <line x1="188" y1="700" x2="209" y2="688" />
+    <line x1="138" y1="512" x2="162" y2="512" />
+    <line x1="188" y1="324" x2="209" y2="336" />
+    <line x1="324" y1="188" x2="336" y2="209" />
+  </g>
+
+  <!-- Outer Enso Countdown Ring (open at top-right like traditional Zen brushstroke) -->
+  <circle
+    cx="512"
+    cy="512"
+    r="296"
+    fill="none"
+    stroke="url(#ensoGrad)"
+    stroke-width="26"
+    stroke-linecap="round"
+    stroke-dasharray="1620 300"
+    transform="rotate(-78 512 512)"
+  />
+
+  <!-- Inner Minimalist Sand Hourglass / Zen Horizon Geometry -->
+  <path
+    d="M412 356 H612 L512 512 L612 668 H412 L512 512 Z"
+    fill="#FAF9F5"
+    fill-opacity="0.05"
+    stroke="#FAF9F5"
+    stroke-opacity="0.78"
+    stroke-width="12"
+    stroke-linejoin="round"
+  />
+
+  <!-- Calm Horizon Water Lines -->
+  <line x1="352" y1="512" x2="672" y2="512" stroke="#FAF9F5" stroke-opacity="0.28" stroke-width="6" stroke-linecap="round" />
+  <line x1="452" y1="628" x2="572" y2="628" stroke="url(#emeraldGrad)" stroke-width="10" stroke-linecap="round" />
+
+  <!-- Glowing Zen Breathing Dot at Top of Enso Arc -->
+  <circle cx="512" cy="216" r="24" fill="url(#emeraldGrad)" />
+  <circle cx="512" cy="216" r="42" fill="#34D399" fill-opacity="0.25" />
+
+  <!-- Center Stillness Point -->
+  <circle cx="512" cy="512" r="12" fill="#FAF9F5" />
+</svg>
