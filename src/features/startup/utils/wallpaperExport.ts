@@ -14,6 +14,7 @@ interface ApplyWallpaperOptions {
   wallpaperImage: string | null;
   wallpaperDim: number;
   wallpaperBlur: number;
+  pinWindow?: boolean;
 }
 
 export async function setNativeLiveDesktopMode(enable: boolean): Promise<boolean> {
@@ -54,6 +55,7 @@ export async function renderAndSetMainWallpaper(
     wallpaperImage,
     wallpaperDim,
     wallpaperBlur,
+    pinWindow = true,
   } = options;
 
   const width = 2560;
@@ -356,14 +358,21 @@ export async function renderAndSetMainWallpaper(
     } catch {
       // ignore static fallback error if live mode succeeds
     }
-    try {
-      await invoke("set_live_desktop_mode", { enable: true });
+    if (pinWindow) {
+      try {
+        await invoke("set_live_desktop_mode", { enable: true });
+        return {
+          mode: "live-desktop",
+          message: "Pinned as your live interactive MacBook wallpaper!",
+        };
+      } catch {
+        // Fall through if old binary
+      }
+    } else {
       return {
         mode: "live-desktop",
-        message: "Pinned as your live interactive MacBook wallpaper!",
+        message: "Updated live desktop wallpaper.",
       };
-    } catch {
-      // Fall through if old binary
     }
   }
 

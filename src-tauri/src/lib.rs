@@ -1,7 +1,21 @@
 use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
+use tauri::Manager;
+
+static LIVE_DESKTOP_ACTIVE: AtomicBool = AtomicBool::new(false);
+
+// kCGDesktopWindowLevel (-2147483623) + 1:
+// Sits above the macOS wallpaper surface (-2147483623) and BEHIND Finder's desktop icons (-2147483603).
+#[cfg(target_os = "macos")]
+const MACOS_BEHIND_ICONS_LEVEL: isize = -2147483622;
+
+// kCGDesktopIconWindowLevel (-2147483603) + 1:
+// Used temporarily when the user clicks the Kanso Dock icon so they can click Unpin, chevrons, or tasks.
+#[cfg(target_os = "macos")]
+const MACOS_INTERACTIVE_DESKTOP_LEVEL: isize = -2147483602;
 
 #[tauri::command]
 fn greet(name: &str) -> String {
@@ -33,8 +47,39 @@ fn cleanup_old_wallpapers(dir: &PathBuf, keep_file: &PathBuf) {
     }
 }
 
+#[cfg(target_os = "macos")]
+fn apply_macos_window_level(window: &tauri::WebviewWindow, level: isize, desktop_mode: bool) -> Result<(), String> {
+    let ns_win_addr = window
+        .ns_window()
+        .map_err(|e| format!("Failed to get NSWindow: {}", e))? as usize;
+
+    window
+        .run_on_main_thread(move || unsafe {
+            use objc2::msg_send;
+            use objc2::runtime::AnyObject;
+
+            let ns_win = ns_win_addr as *mut AnyObject;
+            if !ns_win.is_null() {
+                let _: () = msg_send![ns_win, setLevel: level];
+                if desktop_mode {
+                    let _: () = msg_send![ns_win, setHidesOnDeactivate: false];
+                    // CanJoinAllSpaces (1 << 0) | Stationary (1 << 4) | IgnoresCycle (1 << 6) | FullScreenAuxiliary (1 << 8)
+                    let behavior: usize = (1 << 0) | (1 << 4) | (1 << 6) | (1 << 8);
+                    let _: () = msg_send![ns_win, setCollectionBehavior: behavior];
+                    let _: () = msg_send![ns_win, orderFrontRegardless];
+                } else {
+                    let default_behavior: usize = 0;
+                    let _: () = msg_send![ns_win, setCollectionBehavior: default_behavior];
+                }
+            }
+        })
+        .map_err(|e| format!("Failed to run on main thread: {}", e))
+}
+
 #[tauri::command]
 fn set_live_desktop_mode(window: tauri::WebviewWindow, enable: bool) -> Result<(), String> {
+    LIVE_DESKTOP_ACTIVE.store(enable, Ordering::SeqCst);
+
     if enable {
         let _ = window.set_decorations(false);
         let _ = window.set_shadow(false);
@@ -54,39 +99,11 @@ fn set_live_desktop_mode(window: tauri::WebviewWindow, enable: bool) -> Result<(
 
     #[cfg(target_os = "macos")]
     {
-        let ns_win_addr = window
-            .ns_window()
-            .map_err(|e| format!("Failed to get NSWindow: {}", e))?
-            as usize;
-
-        window
-            .run_on_main_thread(move || unsafe {
-                use objc2::msg_send;
-                use objc2::runtime::AnyObject;
-
-                let ns_win = ns_win_addr as *mut AnyObject;
-                if !ns_win.is_null() {
-                    if enable {
-                        // Sits on the macOS Desktop layer behind normal application windows (level 0),
-                        // while remaining visible when the app deactivates or system overlays open.
-                        let desktop_level: isize = -2147483602;
-                        let _: () = msg_send![ns_win, setLevel: desktop_level];
-                        let _: () = msg_send![ns_win, setHidesOnDeactivate: false];
-
-                        // CanJoinAllSpaces (1 << 0) | Stationary (1 << 4) | IgnoresCycle (1 << 6) | FullScreenAuxiliary (1 << 8)
-                        let behavior: usize = (1 << 0) | (1 << 4) | (1 << 6) | (1 << 8);
-                        let _: () = msg_send![ns_win, setCollectionBehavior: behavior];
-                        let _: () = msg_send![ns_win, orderFrontRegardless];
-                    } else {
-                        let normal_level: isize = 0;
-                        let _: () = msg_send![ns_win, setLevel: normal_level];
-
-                        let default_behavior: usize = 0;
-                        let _: () = msg_send![ns_win, setCollectionBehavior: default_behavior];
-                    }
-                }
-            })
-            .map_err(|e| format!("Failed to run on main thread: {}", e))?;
+        if enable {
+            apply_macos_window_level(&window, MACOS_BEHIND_ICONS_LEVEL, true)?;
+        } else {
+            apply_macos_window_level(&window, 0, false)?;
+        }
     }
 
     if !enable {
@@ -173,16 +190,41 @@ fn send_native_notification(title: String, body: String) -> Result<(), String> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let app = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .on_window_event(|window, event| {
+            #[cfg(target_os = "macos")]
+            if let tauri::WindowEvent::Focused(focused) = event {
+                if LIVE_DESKTOP_ACTIVE.load(Ordering::SeqCst) && !focused {
+                    if let Some(webview_win) = window.app_handle().get_webview_window(window.label()) {
+                        let _ = apply_macos_window_level(&webview_win, MACOS_BEHIND_ICONS_LEVEL, true);
+                    }
+                }
+            }
+        })
         .invoke_handler(tauri::generate_handler![
             greet,
             set_desktop_wallpaper,
             set_live_desktop_mode,
             send_native_notification
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application");
+
+    app.run(|app_handle, event| {
+        #[cfg(target_os = "macos")]
+        if let tauri::RunEvent::Reopen { .. } = event {
+            // When the user clicks the Kanso icon in the macOS Dock while pinned as a live wallpaper,
+            // temporarily bring it just above desktop icons so they can click Unpin, chevrons, or tasks.
+            // Clicking anywhere back on the desktop/Finder lowers it behind desktop icons again.
+            if LIVE_DESKTOP_ACTIVE.load(Ordering::SeqCst) {
+                if let Some(window) = app_handle.get_webview_window("main") {
+                    let _ = apply_macos_window_level(&window, MACOS_INTERACTIVE_DESKTOP_LEVEL, true);
+                    let _ = window.set_focus();
+                }
+            }
+        }
+    });
 }
 
 #[cfg(test)]

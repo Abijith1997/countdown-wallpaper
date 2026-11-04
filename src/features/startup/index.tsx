@@ -113,7 +113,7 @@ export const StartupPage: React.FC<StartupPageProps> = ({
     }
   }, [project, tick]);
 
-  // Keep static fallback wallpaper and native desktop layer synced when in liveDesktopMode
+  // Keep static fallback wallpaper synced when tasks or project change while in liveDesktopMode
   useEffect(() => {
     if (!liveDesktopMode || !project) return;
     const t = calculateTimeLeft(project.targetIso);
@@ -125,20 +125,8 @@ export const StartupPage: React.FC<StartupPageProps> = ({
       wallpaperImage: project.wallpaperImage ?? null,
       wallpaperDim,
       wallpaperBlur,
+      pinWindow: false,
     }).catch(() => {});
-
-    const handleRestoreLiveDesktop = () => {
-      setNativeLiveDesktopMode(true).catch(() => {});
-    };
-
-    window.addEventListener("focus", handleRestoreLiveDesktop);
-    window.addEventListener("blur", handleRestoreLiveDesktop);
-    document.addEventListener("visibilitychange", handleRestoreLiveDesktop);
-    return () => {
-      window.removeEventListener("focus", handleRestoreLiveDesktop);
-      window.removeEventListener("blur", handleRestoreLiveDesktop);
-      document.removeEventListener("visibilitychange", handleRestoreLiveDesktop);
-    };
   }, [
     liveDesktopMode,
     project,
