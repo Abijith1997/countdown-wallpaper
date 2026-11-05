@@ -4,7 +4,7 @@ import {
   resolveAccessibleColors,
 } from "../constants";
 import { ProjectCountdown, TimeLeft, ViewMode, ZenLayout } from "../types";
-import { formatTaskCountdown, padNumber } from "./time";
+import { padNumber } from "./time";
 
 interface ApplyWallpaperOptions {
   project: ProjectCountdown;
@@ -15,6 +15,25 @@ interface ApplyWallpaperOptions {
   wallpaperDim: number;
   wallpaperBlur: number;
   pinWindow?: boolean;
+}
+
+let cachedImageSrc: string | null = null;
+let cachedImageEl: HTMLImageElement | null = null;
+
+async function loadWallpaperImage(src: string): Promise<HTMLImageElement> {
+  if (cachedImageSrc === src && cachedImageEl) {
+    return cachedImageEl;
+  }
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const el = new Image();
+    el.crossOrigin = "anonymous";
+    el.onload = () => resolve(el);
+    el.onerror = reject;
+    el.src = src;
+  });
+  cachedImageSrc = src;
+  cachedImageEl = img;
+  return img;
 }
 
 export async function setNativeLiveDesktopMode(enable: boolean): Promise<boolean> {
@@ -44,25 +63,6 @@ function drawRoundedRect(
   ctx.closePath();
 }
 
-let cachedImageSrc: string | null = null;
-let cachedImageEl: HTMLImageElement | null = null;
-
-async function loadWallpaperImage(src: string): Promise<HTMLImageElement> {
-  if (cachedImageSrc === src && cachedImageEl) {
-    return cachedImageEl;
-  }
-  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-    const el = new Image();
-    el.crossOrigin = "anonymous";
-    el.onload = () => resolve(el);
-    el.onerror = reject;
-    el.src = src;
-  });
-  cachedImageSrc = src;
-  cachedImageEl = img;
-  return img;
-}
-
 export async function renderAndSetMainWallpaper(
   options: ApplyWallpaperOptions
 ): Promise<{ mode: "live-desktop" | "desktop" | "download"; message: string }> {
@@ -70,7 +70,6 @@ export async function renderAndSetMainWallpaper(
     project,
     timeLeft,
     darkMode,
-    viewMode = "main-wallpaper",
     wallpaperImage,
     wallpaperDim,
     wallpaperBlur,
@@ -97,9 +96,6 @@ export async function renderAndSetMainWallpaper(
   const primaryText = resolved.textColor;
   const primaryAccent = resolved.accentColor;
   const layout: ZenLayout = project.layout ?? "centered";
-  const isLockScreenOnly = viewMode === "lock-screen";
-  const visibleTasks =
-    !isLockScreenOnly && project.showSubtasks ? project.tasks.slice(0, 5) : [];
 
   // 1. Draw Background (Custom Image or Minimal Zen Gradient)
   if (wallpaperImage) {
@@ -127,6 +123,7 @@ export async function renderAndSetMainWallpaper(
     ctx.fillRect(0, 0, width, height);
   }
 
+  // 2. Lock Screen Wallpaper Render: ONLY Heading + 4-Unit Timer (no subtasks, no mantra)
   const units = [
     { value: padNumber(timeLeft.days), label: "DAYS" },
     { value: padNumber(timeLeft.hours), label: "HOURS" },
@@ -140,11 +137,10 @@ export async function renderAndSetMainWallpaper(
   const cardStroke = `${primaryAccent}66`;
 
   if (layout === "horizon") {
-    // Horizon layout: wide dock bar anchored near the lower third
     const dockW = 2040;
-    const dockH = 300;
+    const dockH = 260;
     const dockX = (width - dockW) / 2;
-    const dockY = visibleTasks.length > 0 ? 640 : 960;
+    const dockY = 880;
 
     drawRoundedRect(ctx, dockX, dockY, dockW, dockH, 40);
     ctx.fillStyle = cardSurfaceFill;
@@ -156,13 +152,7 @@ export async function renderAndSetMainWallpaper(
     ctx.textAlign = "left";
     ctx.fillStyle = primaryText;
     ctx.font = '300 72px "Cormorant Garamond", Georgia, serif';
-    ctx.fillText(project.title, dockX + 64, dockY + 135);
-
-    if (!isLockScreenOnly) {
-      ctx.fillStyle = primaryText;
-      ctx.font = 'italic 300 26px "Cormorant Garamond", Georgia, serif';
-      ctx.fillText(`“${project.mantra}”`, dockX + 64, dockY + 195);
-    }
+    ctx.fillText(project.title, dockX + 64, dockY + 152);
 
     const uW = 190;
     const uH = 170;
@@ -188,33 +178,20 @@ export async function renderAndSetMainWallpaper(
       ctx.fillText(u.label, x + uW / 2, uY + 135);
     });
   } else if (layout === "split") {
-    // Editorial two-column split layout
     const leftX = 240;
-    const centerY = 580;
+    const centerY = 660;
 
     ctx.textAlign = "left";
     ctx.fillStyle = primaryText;
-    ctx.font = '300 80px "Cormorant Garamond", Georgia, serif';
-    ctx.fillText(project.title, leftX, centerY - 60);
+    ctx.font = '300 84px "Cormorant Garamond", Georgia, serif';
+    ctx.fillText(project.title, leftX, centerY);
 
-    if (!isLockScreenOnly) {
-      ctx.fillStyle = primaryText;
-      ctx.font = 'italic 300 28px "Cormorant Garamond", Georgia, serif';
-      ctx.fillText(`“${project.mantra}”`, leftX, centerY);
-    }
-
-    const uW = 210;
-    const uH = 175;
-    const uGap = 24;
+    const uW = 220;
+    const uH = 180;
+    const uGap = 28;
     units.forEach((u, idx) => {
-      const x =
-        visibleTasks.length > 0
-          ? leftX + idx * (uW + uGap)
-          : 1380 + (idx % 2) * (uW + uGap);
-      const y =
-        visibleTasks.length > 0
-          ? centerY + 60
-          : centerY - 140 + Math.floor(idx / 2) * (uH + uGap);
+      const x = 1380 + (idx % 2) * (uW + uGap);
+      const y = centerY - 160 + Math.floor(idx / 2) * (uH + uGap);
 
       drawRoundedRect(ctx, x, y, uW, uH, 28);
       ctx.fillStyle = cardSurfaceFill;
@@ -226,32 +203,26 @@ export async function renderAndSetMainWallpaper(
       ctx.textAlign = "center";
       ctx.fillStyle = primaryText;
       ctx.font = '300 64px "JetBrains Mono", monospace';
-      ctx.fillText(u.value, x + uW / 2, y + 98);
+      ctx.fillText(u.value, x + uW / 2, y + 100);
 
       ctx.fillStyle = primaryAccent;
       ctx.font = '400 14px "Inter", sans-serif';
-      ctx.fillText(u.label, x + uW / 2, y + 140);
+      ctx.fillText(u.label, x + uW / 2, y + 142);
     });
   } else {
-    // Centered or Minimal layout
-    const titleY = visibleTasks.length > 0 ? 340 : 480;
+    // Centered or Minimal layout (positioned cleanly in the middle/lower half for Lock Screen)
+    const titleY = 560;
     ctx.textAlign = "center";
     ctx.fillStyle = primaryText;
     ctx.font = '300 84px "Cormorant Garamond", Georgia, serif';
     ctx.fillText(project.title, width / 2, titleY);
-
-    if (!isLockScreenOnly) {
-      ctx.fillStyle = primaryText;
-      ctx.font = 'italic 300 28px "Cormorant Garamond", Georgia, serif';
-      ctx.fillText(`“${project.mantra}”`, width / 2, titleY + 60);
-    }
 
     const cardW = 240;
     const cardH = 190;
     const gap = 36;
     const totalW = units.length * cardW + (units.length - 1) * gap;
     const startX = (width - totalW) / 2;
-    const cardY = titleY + 130;
+    const cardY = titleY + 70;
 
     if (layout === "minimal") {
       ctx.strokeStyle = cardStroke;
@@ -298,57 +269,6 @@ export async function renderAndSetMainWallpaper(
         ctx.fillText(u.label, x + cardW / 2, cardY + 150);
       });
     }
-  }
-
-  // Draw Tasks Summary Card (Only if subtasks are enabled and not lock-screen)
-  if (visibleTasks.length > 0) {
-    const boxW = layout === "split" ? 960 : 1068;
-    const rowH = 68;
-    const boxH = 90 + visibleTasks.length * rowH;
-    const boxX = layout === "split" ? 1360 : (width - boxW) / 2;
-    const boxY =
-      layout === "split"
-        ? (height - boxH) / 2
-        : layout === "horizon"
-          ? 980
-          : 720;
-
-    drawRoundedRect(ctx, boxX, boxY, boxW, boxH, 36);
-    ctx.fillStyle = cardSurfaceFill;
-    ctx.fill();
-    ctx.strokeStyle = cardStroke;
-    ctx.stroke();
-
-    ctx.textAlign = "left";
-    ctx.fillStyle = primaryText;
-    ctx.font = '500 18px "Inter", sans-serif';
-    ctx.fillText("MINDFUL MILESTONES & DEADLINES", boxX + 44, boxY + 50);
-
-    visibleTasks.forEach((task, i) => {
-      const y = boxY + 100 + i * rowH;
-      const status = formatTaskCountdown(task.deadlineIso, task.completed);
-
-      ctx.beginPath();
-      ctx.arc(boxX + 58, y - 8, 12, 0, Math.PI * 2);
-      if (task.completed) {
-        ctx.fillStyle = primaryAccent;
-        ctx.fill();
-      } else {
-        ctx.strokeStyle = primaryAccent;
-        ctx.lineWidth = 2;
-        ctx.stroke();
-      }
-
-      ctx.textAlign = "left";
-      ctx.fillStyle = task.completed ? `${primaryText}88` : primaryText;
-      ctx.font = '300 24px "Inter", sans-serif';
-      ctx.fillText(task.title, boxX + 88, y);
-
-      ctx.textAlign = "right";
-      ctx.fillStyle = primaryAccent;
-      ctx.font = '300 20px "JetBrains Mono", monospace';
-      ctx.fillText(status.label, boxX + boxW - 44, y);
-    });
   }
 
   // 1. Try native Tauri command first if inside Tauri window
