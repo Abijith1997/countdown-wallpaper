@@ -66,6 +66,7 @@ export const StartupPage: React.FC<StartupPageProps> = ({
     ReminderNotification[]
   >([]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const isSyncingWallpaperRef = useRef<boolean>(false);
   const sentRemindersRef = useRef<Set<string> | null>(null);
 
   if (sentRemindersRef.current === null) {
@@ -113,9 +114,11 @@ export const StartupPage: React.FC<StartupPageProps> = ({
     }
   }, [project, tick]);
 
-  // Keep static fallback wallpaper synced when tasks or project change while in liveDesktopMode
+  // Keep macOS Lock Screen & Desktop wallpaper continuously live every second while in liveDesktopMode
   useEffect(() => {
     if (!liveDesktopMode || !project) return;
+    if (isSyncingWallpaperRef.current) return;
+    isSyncingWallpaperRef.current = true;
     const t = calculateTimeLeft(project.targetIso);
     renderAndSetMainWallpaper({
       project,
@@ -126,7 +129,11 @@ export const StartupPage: React.FC<StartupPageProps> = ({
       wallpaperDim,
       wallpaperBlur,
       pinWindow: false,
-    }).catch(() => {});
+    })
+      .catch(() => {})
+      .finally(() => {
+        isSyncingWallpaperRef.current = false;
+      });
   }, [
     liveDesktopMode,
     project,
@@ -134,6 +141,7 @@ export const StartupPage: React.FC<StartupPageProps> = ({
     viewMode,
     wallpaperDim,
     wallpaperBlur,
+    tick,
   ]);
 
   // Empty State when no project countdowns exist (fresh install or all deleted)

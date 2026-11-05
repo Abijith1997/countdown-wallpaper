@@ -44,6 +44,25 @@ function drawRoundedRect(
   ctx.closePath();
 }
 
+let cachedImageSrc: string | null = null;
+let cachedImageEl: HTMLImageElement | null = null;
+
+async function loadWallpaperImage(src: string): Promise<HTMLImageElement> {
+  if (cachedImageSrc === src && cachedImageEl) {
+    return cachedImageEl;
+  }
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const el = new Image();
+    el.crossOrigin = "anonymous";
+    el.onload = () => resolve(el);
+    el.onerror = reject;
+    el.src = src;
+  });
+  cachedImageSrc = src;
+  cachedImageEl = img;
+  return img;
+}
+
 export async function renderAndSetMainWallpaper(
   options: ApplyWallpaperOptions
 ): Promise<{ mode: "live-desktop" | "desktop" | "download"; message: string }> {
@@ -84,13 +103,7 @@ export async function renderAndSetMainWallpaper(
 
   // 1. Draw Background (Custom Image or Minimal Zen Gradient)
   if (wallpaperImage) {
-    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const el = new Image();
-      el.crossOrigin = "anonymous";
-      el.onload = () => resolve(el);
-      el.onerror = reject;
-      el.src = wallpaperImage;
-    });
+    const img = await loadWallpaperImage(wallpaperImage);
 
     ctx.save();
     if (wallpaperBlur > 0) {
@@ -338,8 +351,6 @@ export async function renderAndSetMainWallpaper(
     });
   }
 
-  const dataUrl = canvas.toDataURL("image/png");
-
   // 1. Try native Tauri command first if inside Tauri window
   const isTauri =
     typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
@@ -349,7 +360,8 @@ export async function renderAndSetMainWallpaper(
       const blob = await new Promise<Blob>((resolve, reject) => {
         canvas.toBlob(
           (b) => (b ? resolve(b) : reject(new Error("Blob failed"))),
-          "image/png"
+          "image/jpeg",
+          0.92
         );
       });
       const arrayBuffer = await blob.arrayBuffer();
@@ -375,6 +387,8 @@ export async function renderAndSetMainWallpaper(
       };
     }
   }
+
+  const dataUrl = canvas.toDataURL("image/png");
 
   // 2. Try Vite dev server macOS bridge (/api/set-wallpaper)
   try {
